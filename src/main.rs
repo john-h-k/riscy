@@ -26,7 +26,10 @@ fn main() -> Result<ExitCode, Box<dyn Error>> {
     eprintln!("running {}...", args.file);
 
     let loaded = LoadedElf::load(&args.file)?;
-    eprintln!("loaded elf with base 0x{:x}", loaded.base);
+    eprintln!(
+        "loaded elf with base {:#x}, entrypoint {:#x}",
+        loaded.base, loaded.entrypoint
+    );
 
     let mut core = Core::new(loaded, args.entrypoint, args.debug);
     let info = core.run();
