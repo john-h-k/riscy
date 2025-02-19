@@ -480,260 +480,393 @@ pub enum Instruction {
     },
 }
 
-#[derive(Debug)]
-pub enum InstructionDecodeError {
-    InvalidOpcode,
-    InvalidFunct3,
-    InvalidFunct7,
-}
-
 impl Instruction {
-    // Main dispatcher: calls one decode fn per opcode.
-    pub fn decode(inst: u32) -> Result<Instruction, InstructionDecodeError> {
-        let opcode = inst & 0x7F;
-        let rd = ((inst >> 7) & 0x1F) as u8;
-        let funct3 = ((inst >> 12) & 0x7) as u8;
-        let rs1 = ((inst >> 15) & 0x1F) as u8;
-        let rs2 = ((inst >> 20) & 0x1F) as u8;
-        let funct7 = ((inst >> 25) & 0x7F) as u8;
-        let funct7_fp = funct7 & 0xFE; // Remove bottom bit for FP instructions
+    pub fn decode(inst: u32) -> Instruction {
+        // helper for sign extension
+        fn sign_extend(val: u32, bits: u8) -> i32 {
+            let shift = 32 - bits;
+            ((val << shift) as i32) >> shift
+        }
 
-        let imm = ((inst as i32) >> 20); // Sign-extended 12-bit immediate
-        let imm_u = (inst & 0xFFFFF000) as i32;
-
-        let sh = imm >> 5;
-        let shamt = (imm & 5) as u8;
-
+        let opcode = inst & 0x7f;
+        let rd = ((inst >> 7) & 0x1f) as u8;
+        let funct3 = (inst >> 12) & 0x7;
+        let rs1 = ((inst >> 15) & 0x1f) as u8;
+        let rs2 = ((inst >> 20) & 0x1f) as u8;
+        let sz = ((inst >> 25) & 0x3) as u8;
+        let rs3 = ((inst >> 27) & 0x1f) as u8;
+        let funct7 = (inst >> 25) & 0x7f;
+        let rm = ((inst >> 12) & 0x7) as u8;
         match opcode {
-            0b0110111 => Ok(Instruction::lui { rd, imm: imm_u }),
-            0b0010111 => Ok(Instruction::auipc { rd, imm: imm_u }),
-            0b1101111 => {
-                // let imm_j = ((((inst >> 21) & 0x3FF)
-                //     | (((inst >> 20) & 1) << 10)
-                //     | (((inst >> 12) & 0xFF) << 11)
-                //     | (((inst >> 31) & 1) << 19))
-                //     << 1) as i32;
-                let imm20 = ((inst >> 31) & 1) << 20;
-                let imm10_1 = ((inst >> 21) & 0x3FF) << 1;
-                let imm11 = ((inst >> 20) & 1) << 11;
-                let imm19_12 = ((inst >> 12) & 0xFF) << 12;
-
-                let imm = imm20 | imm19_12 | imm11 | imm10_1;
-
-                // Sign-extend from 21-bit to i32
-                let imm_j = ((imm as i32) << 11) >> 11;
-                Ok(Instruction::jal { rd, imm: imm_j })
+            0x37 => {
+                // lui
+                let rd = ((inst >> 7) & 0x1f) as u8;
+                let imm = (inst & 0xfffff000) as i32;
+                Instruction::lui { rd, imm }
             }
-            0b1100111 if funct3 == 0 => Ok(Instruction::jalr { rd, rs1, imm }),
-            0b0010011 => match funct3 {
-                0b000 => Ok(Instruction::addi { rd, rs1, imm }),
-                0b001 => Ok(Instruction::slli { rd, rs1, shamt }),
-                0b101 => match sh {
-                    0b0000000 => Ok(Instruction::srli { rd, rs1, shamt }),
-                    0b0100000 => Ok(Instruction::srai { rd, rs1, shamt }),
-                    _ => panic!("bad shift"),
-                },
-                0b010 => Ok(Instruction::slti { rd, rs1, imm }),
-                0b011 => Ok(Instruction::sltiu { rd, rs1, imm }),
-                0b100 => Ok(Instruction::xori { rd, rs1, imm }),
-                0b110 => Ok(Instruction::ori { rd, rs1, imm }),
-                0b111 => Ok(Instruction::andi { rd, rs1, imm }),
-                _ => Err(InstructionDecodeError::InvalidFunct3),
-            },
-            0b0110011 => match (funct3, funct7) {
-                (0b000, 0b0000000) => Ok(Instruction::add { rd, rs1, rs2 }),
-                (0b000, 0b0100000) => Ok(Instruction::sub { rd, rs1, rs2 }),
-                (0b001, 0b0000000) => Ok(Instruction::sll { rd, rs1, rs2 }),
-                (0b010, 0b0000000) => Ok(Instruction::slt { rd, rs1, rs2 }),
-                (0b011, 0b0000000) => Ok(Instruction::sltu { rd, rs1, rs2 }),
-                (0b100, 0b0000000) => Ok(Instruction::xor { rd, rs1, rs2 }),
-                (0b101, 0b0000000) => Ok(Instruction::srl { rd, rs1, rs2 }),
-                (0b101, 0b0100000) => Ok(Instruction::sra { rd, rs1, rs2 }),
-                (0b110, 0b0000000) => Ok(Instruction::or { rd, rs1, rs2 }),
-                (0b111, 0b0000000) => Ok(Instruction::and { rd, rs1, rs2 }),
-                (0b000, 0b0000001) => Ok(Instruction::mul { rd, rs1, rs2 }),
-                (0b001, 0b0000001) => Ok(Instruction::mulh { rd, rs1, rs2 }),
-                (0b010, 0b0000001) => Ok(Instruction::mulhsu { rd, rs1, rs2 }),
-                (0b011, 0b0000001) => Ok(Instruction::mulhu { rd, rs1, rs2 }),
-                (0b100, 0b0000001) => Ok(Instruction::div { rd, rs1, rs2 }),
-                (0b101, 0b0000001) => Ok(Instruction::divu { rd, rs1, rs2 }),
-                (0b110, 0b0000001) => Ok(Instruction::rem { rd, rs1, rs2 }),
-                (0b111, 0b0000001) => Ok(Instruction::remu { rd, rs1, rs2 }),
-                _ => Err(InstructionDecodeError::InvalidFunct7),
-            },
-            0b1100011 => {
-                let imm12 = ((inst >> 31) & 1) << 12;
-                let imm10_5 = ((inst >> 25) & 0b11111) << 5;
-                let imm11 = ((inst >> 7) & 1) << 11;
-                let imm4_1 = ((inst >> 8) & 0b1111) << 1;
-
-                let imm = imm12 | imm11 | imm10_5 | imm4_1;
-
-                // Sign-extend from 21-bit to i32
-                let b_imm = ((imm as i32) << 11) >> 11;
-
-                match funct3 {
-                    0b000 => Ok(Instruction::beq {
-                        rs1,
-                        rs2,
-                        imm: b_imm,
-                    }),
-                    0b001 => Ok(Instruction::bne {
-                        rs1,
-                        rs2,
-                        imm: b_imm,
-                    }),
-                    0b100 => Ok(Instruction::blt {
-                        rs1,
-                        rs2,
-                        imm: b_imm,
-                    }),
-                    0b101 => Ok(Instruction::bge {
-                        rs1,
-                        rs2,
-                        imm: b_imm,
-                    }),
-                    0b110 => Ok(Instruction::bltu {
-                        rs1,
-                        rs2,
-                        imm: b_imm,
-                    }),
-                    0b111 => Ok(Instruction::bgeu {
-                        rs1,
-                        rs2,
-                        imm: b_imm,
-                    }),
-                    _ => Err(InstructionDecodeError::InvalidFunct3),
+            0x17 => {
+                // auipc
+                let rd = ((inst >> 7) & 0x1f) as u8;
+                let imm = (inst & 0xfffff000) as i32;
+                Instruction::auipc { rd, imm }
+            }
+            0x6f => {
+                // jal
+                let rd = ((inst >> 7) & 0x1f) as u8;
+                let imm_raw = (((inst >> 31) & 0x1) << 20)
+                    | (((inst >> 12) & 0xff) << 12)
+                    | (((inst >> 20) & 0x1) << 11)
+                    | (((inst >> 21) & 0x3ff) << 1);
+                let imm = sign_extend(imm_raw, 21);
+                Instruction::jal { rd, imm }
+            }
+            0x67 => {
+                // jalr (i-type)
+                if ((inst >> 12) & 0x7) == 0 {
+                    let rd = ((inst >> 7) & 0x1f) as u8;
+                    let rs1 = ((inst >> 15) & 0x1f) as u8;
+                    let imm = sign_extend((inst >> 20) & 0xfff, 12);
+                    Instruction::jalr { rd, rs1, imm }
+                } else {
+                    Instruction::unknown(inst)
                 }
             }
-            0b1010011 => match (funct3, funct7_fp) {
-                (0b000, 0b0000000) => Ok(if funct7 & 1 == 0 {
-                    Instruction::fadd_s {
-                        rd,
-                        rs1,
-                        rs2,
-                        rm: funct3,
+            0x63 => {
+                // branch (b-type)
+                let funct3 = (inst >> 12) & 0x7;
+                let rs1 = ((inst >> 15) & 0x1f) as u8;
+                let rs2 = ((inst >> 20) & 0x1f) as u8;
+                let imm_raw = (((inst >> 31) & 0x1) << 12)
+                    | (((inst >> 7) & 0x1) << 11)
+                    | (((inst >> 25) & 0x3f) << 5)
+                    | (((inst >> 8) & 0xf) << 1);
+                let imm = sign_extend(imm_raw, 13);
+                match funct3 {
+                    0 => Instruction::beq { rs1, rs2, imm },
+                    1 => Instruction::bne { rs1, rs2, imm },
+                    4 => Instruction::blt { rs1, rs2, imm },
+                    5 => Instruction::bge { rs1, rs2, imm },
+                    6 => Instruction::bltu { rs1, rs2, imm },
+                    7 => Instruction::bgeu { rs1, rs2, imm },
+                    _ => Instruction::unknown(inst),
+                }
+            }
+            0x03 => {
+                // load (i-type)
+                let funct3 = (inst >> 12) & 0x7;
+                let rd = ((inst >> 7) & 0x1f) as u8;
+                let rs1 = ((inst >> 15) & 0x1f) as u8;
+                let imm = sign_extend((inst >> 20) & 0xfff, 12);
+                match funct3 {
+                    0 => Instruction::lb { rd, rs1, imm },
+                    1 => Instruction::lh { rd, rs1, imm },
+                    2 => Instruction::lw { rd, rs1, imm },
+                    4 => Instruction::lbu { rd, rs1, imm },
+                    5 => Instruction::lhu { rd, rs1, imm },
+                    _ => Instruction::unknown(inst),
+                }
+            }
+            0x23 => {
+                // store (s-type)
+                let funct3 = (inst >> 12) & 0x7;
+                let rs1 = ((inst >> 15) & 0x1f) as u8;
+                let rs2 = ((inst >> 20) & 0x1f) as u8;
+                let imm_raw = (((inst >> 25) & 0x7f) << 5) | ((inst >> 7) & 0x1f);
+                let imm = sign_extend(imm_raw, 12);
+                match funct3 {
+                    0 => Instruction::sb { rs1, rs2, imm },
+                    1 => Instruction::sh { rs1, rs2, imm },
+                    2 => Instruction::sw { rs1, rs2, imm },
+                    _ => Instruction::unknown(inst),
+                }
+            }
+            0x13 => {
+                // op-imm (i-type)
+                let funct3 = (inst >> 12) & 0x7;
+                let rd = ((inst >> 7) & 0x1f) as u8;
+                let rs1 = ((inst >> 15) & 0x1f) as u8;
+                match funct3 {
+                    0 => {
+                        let imm = sign_extend((inst >> 20) & 0xfff, 12);
+                        Instruction::addi { rd, rs1, imm }
+                    }
+                    2 => {
+                        let imm = sign_extend((inst >> 20) & 0xfff, 12);
+                        Instruction::slti { rd, rs1, imm }
+                    }
+                    3 => {
+                        let imm = sign_extend((inst >> 20) & 0xfff, 12);
+                        Instruction::sltiu { rd, rs1, imm }
+                    }
+                    4 => {
+                        let imm = sign_extend((inst >> 20) & 0xfff, 12);
+                        Instruction::xori { rd, rs1, imm }
+                    }
+                    6 => {
+                        let imm = sign_extend((inst >> 20) & 0xfff, 12);
+                        Instruction::ori { rd, rs1, imm }
+                    }
+                    7 => {
+                        let imm = sign_extend((inst >> 20) & 0xfff, 12);
+                        Instruction::andi { rd, rs1, imm }
+                    }
+                    1 => {
+                        // slli; ensure upper bits are 0
+                        let shamt = ((inst >> 20) & 0x1f) as u8;
+                        Instruction::slli { rd, rs1, shamt }
+                    }
+                    5 => {
+                        // srli / srai
+                        let shamt = ((inst >> 20) & 0x1f) as u8;
+                        let funct7 = inst >> 25;
+                        if funct7 == 0 {
+                            Instruction::srli { rd, rs1, shamt }
+                        } else if funct7 == 0x20 {
+                            Instruction::srai { rd, rs1, shamt }
+                        } else {
+                            Instruction::unknown(inst)
+                        }
+                    }
+                    _ => Instruction::unknown(inst),
+                }
+            }
+            0x33 => {
+                // m-extension: only when funct7==0x1
+                if funct7 == 0x1 {
+                    match funct3 {
+                        0x0 => Instruction::mul { rd, rs1, rs2 },
+                        0x1 => Instruction::mulh { rd, rs1, rs2 },
+                        0x2 => Instruction::mulhsu { rd, rs1, rs2 },
+                        0x3 => Instruction::mulhu { rd, rs1, rs2 },
+                        0x4 => Instruction::div { rd, rs1, rs2 },
+                        0x5 => Instruction::divu { rd, rs1, rs2 },
+                        0x6 => Instruction::rem { rd, rs1, rs2 },
+                        0x7 => Instruction::remu { rd, rs1, rs2 },
+                        _ => Instruction::unknown(inst),
                     }
                 } else {
-                    Instruction::fadd_d {
-                        rd,
-                        rs1,
-                        rs2,
-                        rm: funct3,
+                    match funct3 {
+                        0 => {
+                            if funct7 == 0 {
+                                Instruction::add { rd, rs1, rs2 }
+                            } else if funct7 == 0x20 {
+                                Instruction::sub { rd, rs1, rs2 }
+                            } else {
+                                Instruction::unknown(inst)
+                            }
+                        }
+                        1 => Instruction::sll { rd, rs1, rs2 },
+                        2 => Instruction::slt { rd, rs1, rs2 },
+                        3 => Instruction::sltu { rd, rs1, rs2 },
+                        4 => Instruction::xor { rd, rs1, rs2 },
+                        5 => {
+                            if funct7 == 0 {
+                                Instruction::srl { rd, rs1, rs2 }
+                            } else if funct7 == 0x20 {
+                                Instruction::sra { rd, rs1, rs2 }
+                            } else {
+                                Instruction::unknown(inst)
+                            }
+                        }
+                        6 => Instruction::or { rd, rs1, rs2 },
+                        7 => Instruction::and { rd, rs1, rs2 },
+                        _ => Instruction::unknown(inst),
                     }
-                }),
-                (0b001, 0b0000100) => Ok(if funct7 & 1 == 0 {
-                    Instruction::fsub_s {
-                        rd,
-                        rs1,
-                        rs2,
-                        rm: funct3,
+                }
+            }
+            0x0f => {
+                // fence / fence.i
+                let funct3 = (inst >> 12) & 0x7;
+                if funct3 == 0 {
+                    let pred = ((inst >> 24) & 0xf) as u8;
+                    let succ = ((inst >> 20) & 0xf) as u8;
+                    Instruction::fence { pred, succ }
+                } else if funct3 == 1 {
+                    Instruction::fence_i
+                } else {
+                    Instruction::unknown(inst)
+                }
+            }
+            0x73 => {
+                let funct3 = (inst >> 12) & 0x7;
+                if funct3 == 0 {
+                    let imm = (inst >> 20) & 0xfff;
+                    match imm {
+                        0 => Instruction::ecall,
+                        1 => Instruction::ebreak,
+                        _ => Instruction::unknown(inst),
                     }
                 } else {
-                    Instruction::fsub_d {
-                        rd,
-                        rs1,
-                        rs2,
-                        rm: funct3,
-                    }
-                }),
-                (0b010, 0b0001000) => Ok(if funct7 & 1 == 0 {
-                    Instruction::fmul_s {
-                        rd,
-                        rs1,
-                        rs2,
-                        rm: funct3,
-                    }
-                } else {
-                    Instruction::fmul_d {
-                        rd,
-                        rs1,
-                        rs2,
-                        rm: funct3,
-                    }
-                }),
-                (0b011, 0b0001100) => Ok(if funct7 & 1 == 0 {
-                    Instruction::fdiv_s {
-                        rd,
-                        rs1,
-                        rs2,
-                        rm: funct3,
-                    }
-                } else {
-                    Instruction::fdiv_d {
-                        rd,
-                        rs1,
-                        rs2,
-                        rm: funct3,
-                    }
-                }),
-                (0b000, 0b1010000) => Ok(if funct7 & 1 == 0 {
-                    Instruction::fsgnj_s { rd, rs1, rs2 }
-                } else {
-                    Instruction::fsgnj_d { rd, rs1, rs2 }
-                }),
-                (0b001, 0b1010000) => Ok(if funct7 & 1 == 0 {
-                    Instruction::fsgnjn_s { rd, rs1, rs2 }
-                } else {
-                    Instruction::fsgnjn_d { rd, rs1, rs2 }
-                }),
-                (0b010, 0b1010000) => Ok(if funct7 & 1 == 0 {
-                    Instruction::fsgnjx_s { rd, rs1, rs2 }
-                } else {
-                    Instruction::fsgnjx_d { rd, rs1, rs2 }
-                }),
-                (0b000, 0b1100000) => Ok(if funct7 & 1 == 0 {
-                    Instruction::fcvt_s_w { rd, rs1 }
-                } else {
-                    Instruction::fcvt_d_w { rd, rs1 }
-                }),
-                (0b000, 0b1100001) => Ok(if funct7 & 1 == 0 {
-                    Instruction::fcvt_s_wu { rd, rs1 }
-                } else {
-                    Instruction::fcvt_d_wu { rd, rs1 }
-                }),
-                (0b000, 0b0100000) => Ok(if funct7 & 1 == 0 {
-                    Instruction::fcvt_s_d { rd, rs1 }
-                } else {
-                    Instruction::fcvt_d_s { rd, rs1 }
-                }),
-                (0b000, 0b1110000) => Ok(if funct7 & 1 == 0 {
-                    Instruction::fmv_s_w { rd, rs1 }
-                } else {
-                    Instruction::fmv_d_x { rd, rs1 }
-                }),
-                _ => Err(InstructionDecodeError::InvalidFunct7),
+                    Instruction::unknown(inst)
+                }
+            }
+            0x53 => match funct7 & !1 {
+                // Single-precision arithmetic
+                0x00 => {
+                    let rm = ((inst >> 12) & 0x7) as u8;
+                    Instruction::fadd_s { rd, rs1, rs2, rm }
+                }
+
+                0x04 => {
+                    let rm = ((inst >> 12) & 0x7) as u8;
+                    Instruction::fsub_s { rd, rs1, rs2, rm }
+                }
+
+                0x08 => {
+                    let rm = ((inst >> 12) & 0x7) as u8;
+                    Instruction::fmul_s { rd, rs1, rs2, rm }
+                }
+
+                0x0c => {
+                    let rm = ((inst >> 12) & 0x7) as u8;
+                    Instruction::fdiv_s { rd, rs1, rs2, rm }
+                }
+
+                // Single-precision sign-injection ops
+                0x10 => match funct3 {
+                    0x0 => Instruction::fsgnj_s { rd, rs1, rs2 },
+                    0x1 => Instruction::fsgnjn_s { rd, rs1, rs2 },
+                    0x2 => Instruction::fsgnjx_s { rd, rs1, rs2 },
+                    _ => Instruction::unknown(inst),
+                },
+
+                0x11 => match funct3 {
+                    0x0 => Instruction::fsgnj_d { rd, rs1, rs2 },
+                    0x1 => Instruction::fsgnjn_d { rd, rs1, rs2 },
+                    0x2 => Instruction::fsgnjx_d { rd, rs1, rs2 },
+                    _ => Instruction::unknown(inst),
+                },
+
+                // Single-precision min/max
+                0x14 => match funct3 {
+                    0x0 => Instruction::fmin_s { rd, rs1, rs2 },
+                    0x1 => Instruction::fmax_s { rd, rs1, rs2 },
+                    _ => Instruction::unknown(inst),
+                },
+
+                0x15 => match funct3 {
+                    0x0 => Instruction::fmin_d { rd, rs1, rs2 },
+                    0x1 => Instruction::fmax_d { rd, rs1, rs2 },
+                    _ => Instruction::unknown(inst),
+                },
+
+                // Single-precision comparisons
+                0x50 => match funct3 {
+                    0x0 => Instruction::feq_s { rd, rs1, rs2 },
+                    0x1 => Instruction::flt_s { rd, rs1, rs2 },
+                    0x2 => Instruction::fle_s { rd, rs1, rs2 },
+                    _ => Instruction::unknown(inst),
+                },
+
+                // Double-precision arithmetic
+                0x01 => {
+                    let rm = ((inst >> 12) & 0x7) as u8;
+                    Instruction::fadd_d { rd, rs1, rs2, rm }
+                }
+                0x05 => {
+                    let rm = ((inst >> 12) & 0x7) as u8;
+                    Instruction::fsub_d { rd, rs1, rs2, rm }
+                }
+                0x09 => {
+                    let rm = ((inst >> 12) & 0x7) as u8;
+                    Instruction::fmul_d { rd, rs1, rs2, rm }
+                }
+                0x0d => {
+                    let rm = ((inst >> 12) & 0x7) as u8;
+                    Instruction::fdiv_d { rd, rs1, rs2, rm }
+                }
+
+                // Double-precision comparisons
+                0x53 => match funct3 {
+                    0x0 => Instruction::feq_d { rd, rs1, rs2 },
+                    0x1 => Instruction::flt_d { rd, rs1, rs2 },
+                    0x2 => Instruction::fle_d { rd, rs1, rs2 },
+                    _ => Instruction::unknown(inst),
+                },
+
+                // Conversions & moves (same for both)
+                0x60 => match funct3 {
+                    0x0 => Instruction::fcvt_w_s { rd, rs1 },
+                    0x1 => Instruction::fcvt_wu_s { rd, rs1 },
+                    _ => Instruction::unknown(inst),
+                },
+                0x68 => match funct3 {
+                    0x0 => Instruction::fcvt_s_w { rd, rs1 },
+                    0x1 => Instruction::fcvt_s_wu { rd, rs1 },
+                    _ => Instruction::unknown(inst),
+                },
+                0x61 => match funct3 {
+                    0x0 => Instruction::fcvt_w_d { rd, rs1 },
+                    0x1 => Instruction::fcvt_wu_d { rd, rs1 },
+                    _ => Instruction::unknown(inst),
+                },
+                0x69 => match funct3 {
+                    0x0 => Instruction::fcvt_d_w { rd, rs1 },
+                    0x1 => Instruction::fcvt_d_wu { rd, rs1 },
+                    _ => Instruction::unknown(inst),
+                },
+                0x70 => Instruction::fmv_w_s { rd, rs1 },
+                0x78 => Instruction::fmv_s_w { rd, rs1 },
+
+                0x7d => Instruction::fcvt_wu_d { rd, rs1 },
+                0x20 => Instruction::fcvt_s_d { rd, rs1 },
+                0x21 => Instruction::fcvt_d_s { rd, rs1 },
+                _ => Instruction::unknown(inst),
             },
-            0b0000011 => match funct3 {
-                0b000 => Ok(Instruction::lb { rd, rs1, imm }),
-                0b001 => Ok(Instruction::lh { rd, rs1, imm }),
-                0b010 => Ok(Instruction::lw { rd, rs1, imm }),
-                0b100 => Ok(Instruction::lbu { rd, rs1, imm }),
-                0b101 => Ok(Instruction::lhu { rd, rs1, imm }),
-                _ => Err(InstructionDecodeError::InvalidFunct3),
+            0x43 => match sz {
+                0x0 => Instruction::fmadd_s {
+                    rd,
+                    rs1,
+                    rs2,
+                    rs3,
+                    rm,
+                },
+                0x1 => Instruction::fmadd_d {
+                    rd,
+                    rs1,
+                    rs2,
+                    rs3,
+                    rm,
+                },
+                _ => Instruction::unknown(inst),
             },
-            0b0100011 => match funct3 {
-                0b000 => Ok(Instruction::sb { rs1, rs2, imm }),
-                0b001 => Ok(Instruction::sh { rs1, rs2, imm }),
-                0b010 => Ok(Instruction::sw { rs1, rs2, imm }),
-                _ => Err(InstructionDecodeError::InvalidFunct3),
+            0x47 => match sz {
+                0x0 => Instruction::fmsub_s {
+                    rd,
+                    rs1,
+                    rs2,
+                    rs3,
+                    rm,
+                },
+                0x1 => Instruction::fmsub_d {
+                    rd,
+                    rs1,
+                    rs2,
+                    rs3,
+                    rm,
+                },
+                _ => Instruction::unknown(inst),
             },
-            0b0000111 => match funct3 {
-                0b010 => Ok(Instruction::flw { rd, rs1, imm }),
-                0b011 => Ok(Instruction::fld { rd, rs1, imm }),
-                _ => Err(InstructionDecodeError::InvalidFunct3),
-            },
-            0b0100111 => match funct3 {
-                0b010 => Ok(Instruction::fsw { rs1, rs2, imm }),
-                0b011 => Ok(Instruction::fsd { rs1, rs2, imm }),
-                _ => Err(InstructionDecodeError::InvalidFunct3),
-            },
-            0b1110011 => match imm {
-                0 => Ok(Instruction::ecall),
-                1 => Ok(Instruction::ebreak),
-                _ => Err(InstructionDecodeError::InvalidFunct3),
-            },
-            _ => Ok(Instruction::unknown(inst)),
+            0x07 => {
+                // fp loads (I-type): imm in bits[31:20]
+                let imm = sign_extend(inst >> 20, 12);
+                match funct3 {
+                    0x2 => Instruction::flw { rd, rs1, imm },
+                    0x3 => Instruction::fld { rd, rs1, imm },
+                    _ => Instruction::unknown(inst),
+                }
+            }
+            0x27 => {
+                // fp stores (S-type): imm = {inst[31:25], inst[11:7]}
+                let imm_val = ((inst >> 25) << 5) | ((inst >> 7) & 0x1f);
+                let imm = sign_extend(imm_val, 12);
+                match funct3 {
+                    0x2 => Instruction::fsw { rs1, rs2, imm },
+                    0x3 => Instruction::fsd { rs1, rs2, imm },
+                    _ => Instruction::unknown(inst),
+                }
+            }
+            _ => Instruction::unknown(inst),
         }
     }
 }

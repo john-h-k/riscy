@@ -231,8 +231,6 @@ impl Core {
                 eprintln!("pc: {:#x}: {:?}", pc, instr);
             }
 
-            let instr = instr.unwrap();
-
             match self.exec(instr) {
                 ExecResult::Jump(pc) => {
                     if self.pc == pc {
@@ -265,14 +263,12 @@ impl Core {
             }
             Instruction::jal { rd, imm } => {
                 let ret = self.pc.wrapping_add(4);
-                eprintln!("x{rd} = {ret}");
                 reg.write(rd, ret as i32);
                 return ExecResult::Jump(self.pc.wrapping_add(imm as u32));
             }
             Instruction::jalr { rd, rs1, imm } => {
                 let ret = self.pc.wrapping_add(4);
                 let target = (reg.read(rs1) as u32).wrapping_add(imm as u32) & !1;
-                eprintln!("target = {target}");
                 reg.write(rd, ret as i32);
                 return ExecResult::Jump(target);
             }
