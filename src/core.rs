@@ -1,8 +1,8 @@
-use core::f32;
+use core::{f32, slice};
 use std::{
     io::{self, Write},
-    mem::{self},
-    ops::{Deref, Range},
+    marker::PhantomData,
+    ops::Range,
     ptr,
 };
 
@@ -11,32 +11,79 @@ use crate::{
     load::{LoadedElf, Segment},
 };
 
-#[inline(always)]
-fn read_unaligned<T: Copy>(data: &[u8], offset: usize) -> T {
-    unsafe {
-        (data.as_ptr() as *const T)
-            .byte_add(offset)
-            .read_unaligned()
+pub trait IdxType: Copy {
+    fn as_usize(self) -> usize;
+}
+
+impl IdxType for u64 {
+    #[inline(always)]
+    fn as_usize(self) -> usize {
+        self as _
     }
 }
 
-#[inline(always)]
-fn write_unaligned<T: Copy>(data: &[u8], offset: usize, value: T) {
-    unsafe {
-        (data.as_ptr() as *mut T)
-            .byte_add(offset)
-            .write_unaligned(value)
+impl IdxType for u32 {
+    #[inline(always)]
+    fn as_usize(self) -> usize {
+        self as _
     }
 }
 
-#[inline(always)]
-fn read_aligned<T: Copy>(data: &[u8], offset: usize) -> T {
-    unsafe { *(data.as_ptr() as *const T).byte_add(offset) }
+pub trait MemReader {
+    type Idx: IdxType;
+
+    // returning 'static is unimaginably unsafe
+    unsafe fn get_buf(data: *const u8, offset: Self::Idx, len: Self::Idx) -> &'static [u8] {
+        let start = data.byte_add(offset.as_usize());
+        slice::from_raw_parts(start, len.as_usize())
+    }
+
+    unsafe fn read<T: Copy>(data: *const u8, offset: Self::Idx) -> T;
+    unsafe fn write<T: Copy>(data: *mut u8, offset: Self::Idx, val: T);
 }
 
-#[inline(always)]
-fn write_aligned<T: Copy>(data: &[u8], offset: usize, value: T) {
-    unsafe { *(data.as_ptr() as *mut T).byte_add(offset) = value }
+pub struct AlignedMemReader<Idx: IdxType> {
+    _phantom_data: PhantomData<Idx>,
+}
+
+impl<Idx: IdxType> MemReader for AlignedMemReader<Idx> {
+    type Idx = Idx;
+
+    #[inline(always)]
+    unsafe fn read<T: Copy>(data: *const u8, offset: Self::Idx) -> T {
+        unsafe { *data.byte_add(offset.as_usize()).cast::<T>() }
+    }
+
+    #[inline(always)]
+    unsafe fn write<T: Copy>(data: *mut u8, offset: Idx, val: T) {
+        unsafe { *data.byte_add(offset.as_usize()).cast::<T>() = val }
+    }
+}
+
+pub struct UnalignedMemReader<Idx: IdxType> {
+    _phantom_data: PhantomData<Idx>,
+}
+
+impl<Idx: IdxType> MemReader for UnalignedMemReader<Idx> {
+    type Idx = Idx;
+
+    #[inline(always)]
+    unsafe fn read<T: Copy>(data: *const u8, offset: Self::Idx) -> T {
+        unsafe {
+            data.byte_add(offset.as_usize())
+                .cast::<T>()
+                .read_unaligned()
+        }
+    }
+
+    #[inline(always)]
+    unsafe fn write<T: Copy>(data: *mut u8, offset: Idx, val: T) {
+        unsafe {
+            data.byte_add(offset.as_usize())
+                .cast::<T>()
+                .write_unaligned(val)
+        }
+    }
 }
 
 struct Regfile {
@@ -212,23 +259,40 @@ impl Register {
     }
 }
 
-pub struct Memory {
-    data: Box<[u64]>,
+pub struct Memory<Reader: MemReader> {
+    data_owner: Box<[u8]>,
+    data: *mut u8,
+
     elf: LoadedElf,
+
+    _phantom_data: PhantomData<Reader>,
 }
 
-impl Memory {
-    fn new(elf: LoadedElf) -> Self {
-        let mut data = vec![0xBEBEBEBE; 0xFFFFFF / 8].into_boxed_slice();
+#[repr(C, align(16))]
+struct Align16(u8);
 
-        for seg in elf.segments.iter() {
-            unsafe {
-                let dest = (data.as_mut_ptr() as *mut u8).byte_add(seg.vaddr as usize);
+impl<Reader: MemReader> Memory<Reader> {
+    fn new(elf: LoadedElf) -> Self {
+        let mut data_owner = vec![0xBEu8; 0xFFFFFF].into_boxed_slice();
+
+        let data;
+        unsafe {
+            let (_pref, aligned, _suf) = data_owner.align_to_mut::<Align16>();
+
+            data = aligned.as_mut_ptr() as *mut u8;
+
+            for seg in elf.segments.iter() {
+                let dest = data.byte_add(seg.vaddr as usize);
                 dest.copy_from(seg.data.as_ptr(), seg.data.len());
             }
         }
 
-        Self { elf, data }
+        Self {
+            elf,
+            data_owner,
+            data,
+            _phantom_data: PhantomData,
+        }
     }
 
     // fn get_data(&self, idx: u32) -> (&[AlignedU8], u32) {
@@ -239,38 +303,28 @@ impl Memory {
     //     }
     // }
 
-    fn load_buf(&self, idx: u32, len: u32) -> &[u8] {
+    fn load_buf(&self, addr: Reader::Idx, len: Reader::Idx) -> &[u8] {
         // let (data, offset) = self.get_data(idx);
-        unsafe {
-            &mem::transmute::<&[u64], &[u8]>(self.data.deref())[idx as usize..(idx + len) as usize]
-        }
+        let data = self.data;
+        unsafe { Reader::get_buf(data, addr, len) }
     }
 
-    fn load<T: Copy>(&self, idx: u32) -> T {
+    fn load<T: Copy>(&self, addr: Reader::Idx) -> T {
         // let (data, offset) = self.get_data(idx);
-        unsafe {
-            read_aligned(
-                mem::transmute::<&[u64], &[u8]>(self.data.deref()),
-                idx as usize,
-            )
-        }
+        let data = self.data;
+        unsafe { Reader::read(data, addr) }
     }
 
-    fn store<T: Copy>(&self, idx: u32, value: T) {
+    fn store<T: Copy>(&self, addr: Reader::Idx, val: T) {
         // let (data, offset) = self.get_data(idx);
-        unsafe {
-            write_aligned(
-                mem::transmute::<&[u64], &[u8]>(self.data.deref()),
-                idx as usize,
-                value,
-            );
-        }
+        let data = self.data;
+        unsafe { Reader::write(data, addr, val) }
     }
 
     fn memset(&mut self, idx: i32, value: i32, length: i32) {
         unsafe {
             ptr::write_bytes(
-                (self.data.as_mut_ptr() as *mut u8).byte_add(idx as usize),
+                self.data.byte_add(idx as usize),
                 value as u8,
                 length as usize,
             );
@@ -280,8 +334,8 @@ impl Memory {
     fn memcpy(&mut self, dest: i32, src: i32, length: i32) {
         unsafe {
             ptr::copy_nonoverlapping(
-                (self.data.as_mut_ptr() as *mut u8).byte_add(src as usize),
-                (self.data.as_mut_ptr() as *mut u8).byte_add(dest as usize),
+                self.data.byte_add(src as usize),
+                self.data.byte_add(dest as usize),
                 length as usize,
             );
         }
@@ -290,18 +344,18 @@ impl Memory {
     fn memmove(&mut self, dest: i32, src: i32, length: i32) {
         unsafe {
             ptr::copy(
-                (self.data.as_mut_ptr() as *mut u8).byte_add(src as usize),
-                (self.data.as_mut_ptr() as *mut u8).byte_add(dest as usize),
+                self.data.byte_add(src as usize),
+                self.data.byte_add(dest as usize),
                 length as usize,
             );
         }
     }
 }
 
-pub struct Core {
+pub struct Core32<Reader: MemReader> {
     pc: u32,
     text: Segment,
-    memory: Memory,
+    memory: Memory<Reader>,
     fp_regfile: FpRegfile,
     gp_regfile: Regfile,
     debug: bool,
@@ -329,7 +383,7 @@ enum ExecResult {
     Exit,
 }
 
-impl Core {
+impl<Reader: MemReader<Idx = u32>> Core32<Reader> {
     pub fn new(elf: LoadedElf, entrypoint: Option<u64>, debug: bool) -> Self {
         let (text, _start, pc_offset) = elf
             .find_segment(entrypoint.unwrap_or(elf.entrypoint))
@@ -1083,7 +1137,7 @@ impl Core {
                 match syscall {
                     SYSCALL_EXIT => return ExecResult::Exit,
                     SYSCALL_WRITE => {
-                        let fd = self.read(Register::A(0));
+                        let _fd = self.read(Register::A(0));
                         let buf = self.read(Register::A(1));
                         let count = self.read(Register::A(2));
 
@@ -1114,7 +1168,7 @@ impl Core {
             }
 
             Instruction::Unknown(val) => {
-                panic!("unknown instruction!");
+                panic!("unknown instruction {val}!");
             }
         }
         ExecResult::Continue

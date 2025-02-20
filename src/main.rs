@@ -1,7 +1,7 @@
 use std::{error::Error, process::ExitCode};
 
 use clap::Parser;
-use core::Core;
+use core::{AlignedMemReader, Core32, MemReader, RunInfo, UnalignedMemReader};
 use load::LoadedElf;
 
 mod core;
@@ -16,8 +16,20 @@ struct Args {
     #[arg(short, long)]
     entrypoint: Option<u64>,
 
+    #[arg(long)]
+    assume_aligned: bool,
+
     #[arg(short, long)]
     debug: bool,
+}
+
+fn run_core32<Reader: MemReader<Idx = u32>>(
+    elf: LoadedElf,
+    entrypoint: Option<u64>,
+    debug: bool,
+) -> RunInfo {
+    let mut core = Core32::<Reader>::new(elf, entrypoint, debug);
+    core.run()
 }
 
 fn main() -> Result<ExitCode, Box<dyn Error>> {
@@ -31,8 +43,11 @@ fn main() -> Result<ExitCode, Box<dyn Error>> {
         loaded.base, loaded.entrypoint
     );
 
-    let mut core = Core::new(loaded, args.entrypoint, args.debug);
-    let info = core.run();
+    let info = if args.assume_aligned {
+        run_core32::<AlignedMemReader<u32>>(loaded, args.entrypoint, args.debug)
+    } else {
+        run_core32::<UnalignedMemReader<u32>>(loaded, args.entrypoint, args.debug)
+    };
 
     Ok(ExitCode::from(info.return_code as u8))
 }
