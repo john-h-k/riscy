@@ -1,8 +1,10 @@
 use core::{f32, slice};
 use std::{
+    fmt,
     io::{self, Write},
     marker::PhantomData,
-    ops::Range,
+    mem,
+    ops::{Add, Range},
     ptr,
 };
 
@@ -11,7 +13,7 @@ use crate::{
     load::{LoadedElf, Segment},
 };
 
-pub trait IdxType: Copy {
+pub trait IdxType: fmt::Debug + Copy + Add + Eq + Ord {
     fn as_usize(self) -> usize;
 }
 
@@ -262,6 +264,7 @@ impl Register {
 pub struct Memory<Reader: MemReader> {
     data_owner: Box<[u8]>,
     data: *mut u8,
+    size: usize,
 
     elf: LoadedElf,
 
@@ -276,13 +279,16 @@ impl<Reader: MemReader> Memory<Reader> {
         let mut data_owner = vec![0xBEu8; 0xFFFFFF].into_boxed_slice();
 
         let data;
+        let size;
         unsafe {
             let (_pref, aligned, _suf) = data_owner.align_to_mut::<Align16>();
 
             data = aligned.as_mut_ptr() as *mut u8;
+            size = std::mem::size_of_val(aligned);
 
             for seg in elf.segments.iter() {
                 let dest = data.byte_add(seg.vaddr as usize);
+                debug_assert!(seg.vaddr as usize + seg.data.len() < size);
                 dest.copy_from(seg.data.as_ptr(), seg.data.len());
             }
         }
@@ -291,8 +297,13 @@ impl<Reader: MemReader> Memory<Reader> {
             elf,
             data_owner,
             data,
+            size,
             _phantom_data: PhantomData,
         }
+    }
+
+    fn size(&self) -> usize {
+        self.size
     }
 
     // fn get_data(&self, idx: u32) -> (&[AlignedU8], u32) {
@@ -304,18 +315,37 @@ impl<Reader: MemReader> Memory<Reader> {
     // }
 
     fn load_buf(&self, addr: Reader::Idx, len: Reader::Idx) -> &[u8] {
+        debug_assert!(
+            addr.as_usize() + len.as_usize() <= self.size,
+            "{addr:?} {len:?}"
+        );
+
         // let (data, offset) = self.get_data(idx);
         let data = self.data;
         unsafe { Reader::get_buf(data, addr, len) }
     }
 
     fn load<T: Copy>(&self, addr: Reader::Idx) -> T {
+        debug_assert!(
+            addr.as_usize() + mem::size_of::<T>() <= self.size,
+            "addr={addr:?}, size={}, len={}",
+            mem::size_of::<T>(),
+            self.size
+        );
+
         // let (data, offset) = self.get_data(idx);
         let data = self.data;
         unsafe { Reader::read(data, addr) }
     }
 
     fn store<T: Copy>(&self, addr: Reader::Idx, val: T) {
+        debug_assert!(
+            addr.as_usize() + mem::size_of::<T>() <= self.size,
+            "addr={addr:?}, size={}, len={}",
+            mem::size_of::<T>(),
+            self.size
+        );
+
         // let (data, offset) = self.get_data(idx);
         let data = self.data;
         unsafe { Reader::write(data, addr, val) }
@@ -372,9 +402,10 @@ pub struct RunInfo {
 }
 
 const SYSCALL_EXIT: i32 = 93;
-const SYSCALL_NEWFSTAT: i32 = 80;
+// const SYSCALL_NEWFSTAT: i32 = 80;
 const SYSCALL_WRITE: i32 = 64;
-const SYSCALL_READ: i32 = 63;
+// const SYSCALL_READ: i32 = 63;
+const SYSCALL_BRK: i32 = 214;
 
 enum ExecResult {
     Continue,
@@ -427,24 +458,23 @@ impl<Reader: MemReader<Idx = u32>> Core32<Reader> {
     }
 
     pub fn run(&mut self) -> RunInfo {
-        self.write(Register::Sp, 0xFFFFFF & !0xF);
+        let sp = (self.memory.size() as i32 - 128) & !0xF;
+        self.write(Register::Sp, sp);
 
         let vaddr = self.text.vaddr as usize;
         let data = self.text.data.clone();
 
-        let mut ins_cache = Vec::with_capacity(data.len() / 4);
+        let mut ins_cache = Vec::with_capacity((data.len() + 3) / 4);
         unsafe {
             let Range { mut start, end } = data.as_ptr_range();
-            let mut cache = ins_cache.as_mut_ptr();
 
             while start < end {
                 let instr = *(start as *const u32);
                 let instr = Instruction::decode(instr);
 
-                *cache = instr;
+                ins_cache.push(instr);
 
                 start = start.wrapping_add(4);
-                cache = cache.wrapping_add(1);
             }
 
             ins_cache.set_len(data.len() / 4);
@@ -1149,7 +1179,12 @@ impl<Reader: MemReader<Idx = u32>> Core32<Reader> {
                         let count = io::stdout().write(buf).expect("write failed");
                         self.write(Register::A(0), count as i32);
                     }
-                    _ => {} // _ => panic!("unknown syscall '{syscall}'"),
+                    SYSCALL_BRK => {
+                        let p = self.read(Register::A(0));
+                        eprintln!("brk to {:#x}", p);
+                    }
+                    _ => eprintln!("unknown syscall '{syscall}'"),
+                    // _ => panic!("unknown syscall '{syscall}'"),
                 }
             }
             Instruction::Frrm { rd } => {
