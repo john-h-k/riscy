@@ -1,6 +1,8 @@
 use std::{
     fs::File,
     io::{self, Write},
+    mem::{self, MaybeUninit},
+    ops::{Deref, Range},
     os::fd::FromRawFd,
 };
 
@@ -9,36 +11,58 @@ use crate::{
     load::{LoadedElf, Segment},
 };
 
-fn read_unaligned<T: Copy>(data: &[u8]) -> T {
-    unsafe { (data.as_ptr() as *const T).read_unaligned() }
+#[inline(always)]
+fn read_unaligned<T: Copy>(data: &[u8], offset: usize) -> T {
+    unsafe {
+        (data.as_ptr() as *const T)
+            .byte_add(offset)
+            .read_unaligned()
+    }
 }
 
-fn write_unaligned<T: Copy>(data: &[u8], value: T) {
-    unsafe { (data.as_ptr() as *mut T).write_unaligned(value) }
+#[inline(always)]
+fn write_unaligned<T: Copy>(data: &[u8], offset: usize, value: T) {
+    unsafe {
+        (data.as_ptr() as *mut T)
+            .byte_add(offset)
+            .write_unaligned(value)
+    }
+}
+
+#[inline(always)]
+fn read_aligned<T: Copy>(data: &[u8], offset: usize) -> T {
+    unsafe { *(data.as_ptr() as *const T).byte_add(offset) }
+}
+
+#[inline(always)]
+fn write_aligned<T: Copy>(data: &[u8], offset: usize, value: T) {
+    unsafe { *(data.as_ptr() as *mut T).byte_add(offset) = value }
 }
 
 struct Regfile {
-    registers: [i32; 31],
+    registers: [i32; 32],
 }
 
 impl Regfile {
     pub fn new() -> Self {
         Self {
-            registers: [0xBEBE; 31],
+            registers: [0xBEBE; 32],
         }
     }
 
+    #[inline(always)]
     pub fn read(&self, idx: u8) -> i32 {
         if idx == 0 {
             0
         } else {
-            self.registers[idx as usize - 1]
+            unsafe { *self.registers.get_unchecked(idx as usize) }
         }
     }
 
+    #[inline(always)]
     pub fn write(&mut self, idx: u8, value: i32) {
         if idx != 0 {
-            self.registers[idx as usize - 1] = value
+            unsafe { *self.registers.get_unchecked_mut(idx as usize) = value }
         };
     }
 }
@@ -105,28 +129,40 @@ impl FpRegfile {
         }
     }
 
+    #[inline(always)]
     pub fn read_u32(&self, idx: u8) -> u32 {
-        unsafe { self.registers[idx as usize].u32 }
+        unsafe { self.registers.get_unchecked(idx as usize).u32 }
     }
 
+    #[inline(always)]
     pub fn read_single(&self, idx: u8) -> f32 {
-        unsafe { self.registers[idx as usize].single }
+        unsafe { self.registers.get_unchecked(idx as usize).single }
     }
 
+    #[inline(always)]
     pub fn read_double(&self, idx: u8) -> f64 {
-        unsafe { self.registers[idx as usize].double }
+        unsafe { self.registers.get_unchecked(idx as usize).double }
     }
 
+    #[inline(always)]
     pub fn write_single(&mut self, idx: u8, value: f32) {
-        self.registers[idx as usize].single = value;
+        unsafe {
+            self.registers.get_unchecked_mut(idx as usize).single = value;
+        }
     }
 
+    #[inline(always)]
     pub fn write_double(&mut self, idx: u8, value: f64) {
-        self.registers[idx as usize].double = value;
+        unsafe {
+            self.registers.get_unchecked_mut(idx as usize).double = value;
+        }
     }
 
+    #[inline(always)]
     pub fn write_u32(&mut self, idx: u8, value: u32) {
-        self.registers[idx as usize].u32 = value;
+        unsafe {
+            self.registers.get_unchecked_mut(idx as usize).u32 = value;
+        }
     }
 }
 
@@ -173,38 +209,65 @@ impl Register {
 }
 
 pub struct Memory {
-    data: [u8; 0xFFFF],
+    data: Box<[u64]>,
     elf: LoadedElf,
 }
 
 impl Memory {
     fn new(elf: LoadedElf) -> Self {
-        Self {
-            elf,
-            data: [0xBE; 0xFFFF],
+        let mut data = vec![0xBEBEBEBE; 0xFFFFFF / 8].into_boxed_slice();
+
+        for seg in elf.segments.iter() {
+            unsafe {
+                let dest = (data.as_mut_ptr() as *mut u8).byte_add(seg.vaddr as usize);
+                println!(
+                    "copying {:?} to {:?} (vaddr={}), {} bytes",
+                    seg.data.as_ptr(),
+                    dest,
+                    seg.vaddr,
+                    seg.data.len()
+                );
+                dest.copy_from(seg.data.as_ptr(), seg.data.len());
+            }
         }
+
+        Self { elf, data }
     }
 
-    fn get_data(&self, idx: u32) -> (&[u8], u32) {
-        match self.elf.find_segment(idx as u64) {
-            Some((segment, _, offset)) => (&segment.data, offset as u32),
-            None => (&self.data, idx),
-        }
-    }
+    // fn get_data(&self, idx: u32) -> (&[AlignedU8], u32) {
+    //     match self.elf.find_segment(idx as u64) {
+    //         Some(_) => panic!(""),
+    //         // Some((segment, _, offset)) => (&segment.data, offset as u32),
+    //         None => (&self.data, idx),
+    //     }
+    // }
 
     fn load_buf(&self, idx: u32, len: u32) -> &[u8] {
-        let (data, offset) = self.get_data(idx);
-        &data[offset as usize..(offset + len) as usize]
+        // let (data, offset) = self.get_data(idx);
+        unsafe {
+            &mem::transmute::<&[u64], &[u8]>(self.data.deref())[idx as usize..(idx + len) as usize]
+        }
     }
 
     fn load<T: Copy>(&self, idx: u32) -> T {
-        let (data, offset) = self.get_data(idx);
-        read_unaligned(&data[offset as usize..])
+        // let (data, offset) = self.get_data(idx);
+        unsafe {
+            read_aligned(
+                mem::transmute::<&[u64], &[u8]>(self.data.deref()),
+                idx as usize,
+            )
+        }
     }
 
     fn store<T: Copy>(&self, idx: u32, value: T) {
-        let (data, offset) = self.get_data(idx);
-        write_unaligned(&data[offset as usize..], value);
+        // let (data, offset) = self.get_data(idx);
+        unsafe {
+            write_aligned(
+                mem::transmute::<&[u64], &[u8]>(self.data.deref()),
+                idx as usize,
+                value,
+            );
+        }
     }
 }
 
@@ -256,39 +319,65 @@ impl Core {
         self.gp_regfile.write(reg.to_idx(), value);
     }
 
+    #[cold]
+    fn debug_print(&self, instr: &Instruction) {
+        eprintln!("pc: {:#x}: {:?}", self.pc, instr);
+    }
+
+    #[cold]
+    fn get_exit_info(&self) -> RunInfo {
+        RunInfo {
+            return_code: self.read(Register::A(0)),
+        }
+    }
+
     pub fn run(&mut self) -> RunInfo {
+        self.write(Register::Sp, 0xFFFFFF & !0xF);
+
+        let vaddr = self.text.vaddr as usize;
+        let data = self.text.data.clone();
+
+        let mut ins_cache = Vec::with_capacity(data.len() / 4);
+        unsafe {
+            let Range { mut start, end } = data.as_ptr_range();
+            let mut cache = ins_cache.as_mut_ptr();
+
+            while start < end {
+                let instr = *(start as *const u32);
+                let instr = Instruction::decode(instr);
+
+                *cache = instr;
+
+                start = start.wrapping_add(4);
+                cache = cache.wrapping_add(1);
+            }
+
+            ins_cache.set_len(data.len() / 4);
+        }
+
         loop {
             let pc = self.pc as usize;
 
-            if pc == 0xBEBE {
-                return RunInfo {
-                    return_code: self.read(Register::A(0)),
-                };
-            }
-
-            let rel_pc = pc - self.text.vaddr as usize;
-            let instr = self.text.data[rel_pc..rel_pc + 4].try_into().unwrap();
-            let instr = Instruction::decode(u32::from_le_bytes(instr));
+            let rel_pc = pc - vaddr;
+            // let instr = read_unaligned(&data, rel_pc);
+            // let instr = Instruction::decode(u32::from_le_bytes(instr));
+            let instr = unsafe { *ins_cache.get_unchecked(rel_pc / 4) };
 
             if self.debug {
-                eprintln!("pc: {:#x}: {:?}", pc, instr);
+                self.debug_print(&instr);
             }
 
             match self.exec(instr) {
                 ExecResult::Jump(pc) => {
                     if self.pc == pc {
-                        eprintln!("Entered infinite loop");
+                        // loop
                         return RunInfo { return_code: 0 };
                     }
 
                     self.pc = pc;
                 }
                 ExecResult::Continue => self.pc += 4,
-                ExecResult::Exit => {
-                    return RunInfo {
-                        return_code: self.read(Register::A(0)),
-                    }
-                }
+                ExecResult::Exit => return self.get_exit_info(),
             }
         }
     }
