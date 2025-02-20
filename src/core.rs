@@ -1,9 +1,11 @@
+use core::f32;
 use std::{
     fs::File,
     io::{self, Write},
     mem::{self, MaybeUninit},
     ops::{Deref, Range},
     os::fd::FromRawFd,
+    ptr,
 };
 
 use crate::{
@@ -176,6 +178,8 @@ pub enum Register {
     T(usize), // t registers: t0-t2 map to x5-x7, t3-t6 map to x28-x31
     S(usize), // s registers: s0 maps to x8, s1 to x9, s2-s11 to x18-x27
     A(usize), // a registers: a0-a7 map to x10-x17
+
+    Fa(usize),
 }
 
 impl Register {
@@ -204,6 +208,8 @@ impl Register {
                     unreachable!("invalid a register index")
                 }
             }
+
+            Register::Fa(i) => i as u8 + 10,
         }
     }
 }
@@ -269,6 +275,36 @@ impl Memory {
             );
         }
     }
+
+    fn memset(&mut self, idx: i32, value: i32, length: i32) {
+        unsafe {
+            ptr::write_bytes(
+                (self.data.as_mut_ptr() as *mut u8).byte_add(idx as usize),
+                value as u8,
+                length as usize,
+            );
+        }
+    }
+
+    fn memcpy(&mut self, dest: i32, src: i32, length: i32) {
+        unsafe {
+            ptr::copy_nonoverlapping(
+                (self.data.as_mut_ptr() as *mut u8).byte_add(src as usize),
+                (self.data.as_mut_ptr() as *mut u8).byte_add(dest as usize),
+                length as usize,
+            );
+        }
+    }
+
+    fn memmove(&mut self, dest: i32, src: i32, length: i32) {
+        unsafe {
+            ptr::copy(
+                (self.data.as_mut_ptr() as *mut u8).byte_add(src as usize),
+                (self.data.as_mut_ptr() as *mut u8).byte_add(dest as usize),
+                length as usize,
+            );
+        }
+    }
 }
 
 pub struct Core {
@@ -278,6 +314,12 @@ pub struct Core {
     fp_regfile: FpRegfile,
     gp_regfile: Regfile,
     debug: bool,
+
+    pub wk_memmove: u32,
+    pub wk_memcpy: u32,
+    pub wk_memset: u32,
+    pub wk_cos: u32,
+    pub wk_sin: u32,
 }
 
 pub struct RunInfo {
@@ -292,6 +334,7 @@ const SYSCALL_READ: i32 = 63;
 enum ExecResult {
     Continue,
     Jump(u32),
+    Call(u32),
     Exit,
 }
 
@@ -305,9 +348,16 @@ impl Core {
             debug,
             pc: (text.vaddr + pc_offset as u64) as u32,
             text: text.clone(),
-            memory: Memory::new(elf),
             fp_regfile: FpRegfile::new(),
             gp_regfile: Regfile::new(),
+
+            wk_memmove: elf.wk_memmove,
+            wk_memcpy: elf.wk_memcpy,
+            wk_memset: elf.wk_memset,
+            wk_cos: elf.wk_cos,
+            wk_sin: elf.wk_sin,
+
+            memory: Memory::new(elf),
         }
     }
 
@@ -355,9 +405,16 @@ impl Core {
             ins_cache.set_len(data.len() / 4);
         }
 
-        loop {
-            let pc = self.pc as usize;
+        let wk_memmove = self.wk_memmove;
+        let wk_memcpy = self.wk_memcpy;
+        let wk_memset = self.wk_memset;
+        let wk_cos = self.wk_cos;
+        let wk_sin = self.wk_sin;
 
+        loop {
+            let pc = self.pc;
+
+            let pc = pc as usize;
             let rel_pc = pc - vaddr;
             // let instr = read_unaligned(&data, rel_pc);
             // let instr = Instruction::decode(u32::from_le_bytes(instr));
@@ -369,12 +426,51 @@ impl Core {
 
             match self.exec(instr) {
                 ExecResult::Jump(pc) => {
+                    self.pc = pc;
+                }
+                ExecResult::Call(pc) => {
                     if self.pc == pc {
                         // loop
                         return RunInfo { return_code: 0 };
                     }
 
-                    self.pc = pc;
+                    if pc == wk_memset {
+                        let dst = self.read(Register::A(0));
+                        let value = self.read(Register::A(1));
+                        let count = self.read(Register::A(2));
+
+                        self.memory.memset(dst, value, count);
+
+                        self.pc = self.read(Register::Ra) as u32;
+                    } else if pc == wk_memcpy {
+                        let dst = self.read(Register::A(0));
+                        let src = self.read(Register::A(1));
+                        let count = self.read(Register::A(2));
+
+                        self.memory.memcpy(dst, src, count);
+
+                        self.pc = self.read(Register::Ra) as u32;
+                    } else if pc == wk_memmove {
+                        let dst = self.read(Register::A(0));
+                        let src = self.read(Register::A(1));
+                        let count = self.read(Register::A(2));
+
+                        self.memory.memmove(dst, src, count);
+
+                        self.pc = self.read(Register::Ra) as u32;
+                    } else if pc == wk_cos {
+                        let arg = self.fp_regfile.read_double(10);
+                        self.fp_regfile.write_double(10, arg.cos());
+
+                        self.pc = self.read(Register::Ra) as u32;
+                    } else if pc == wk_sin {
+                        let arg = self.fp_regfile.read_double(10);
+                        self.fp_regfile.write_double(10, arg.sin());
+
+                        self.pc = self.read(Register::Ra) as u32;
+                    } else {
+                        self.pc = pc;
+                    }
                 }
                 ExecResult::Continue => self.pc += 4,
                 ExecResult::Exit => return self.get_exit_info(),
@@ -396,13 +492,23 @@ impl Core {
             Instruction::jal { rd, imm } => {
                 let ret = self.pc.wrapping_add(4);
                 reg.write(rd, ret as i32);
-                return ExecResult::Jump(self.pc.wrapping_add(imm as u32));
+
+                if rd == 1 {
+                    return ExecResult::Call(self.pc.wrapping_add(imm as u32));
+                } else {
+                    return ExecResult::Jump(self.pc.wrapping_add(imm as u32));
+                }
             }
             Instruction::jalr { rd, rs1, imm } => {
                 let ret = self.pc.wrapping_add(4);
                 let target = (reg.read(rs1) as u32).wrapping_add(imm as u32) & !1;
                 reg.write(rd, ret as i32);
-                return ExecResult::Jump(target);
+
+                if rd == 1 {
+                    return ExecResult::Call(target);
+                } else {
+                    return ExecResult::Jump(target);
+                }
             }
             Instruction::beq { rs1, rs2, imm } => {
                 if reg.read(rs1) == reg.read(rs2) {

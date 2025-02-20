@@ -1,5 +1,6 @@
 use anyhow::anyhow;
 use elf::{abi, endian::AnyEndian, ElfBytes};
+use std::collections::HashMap;
 use std::error::Error;
 use std::fs;
 
@@ -16,6 +17,12 @@ pub struct LoadedElf {
     pub base: u64,
     pub entrypoint: u64,
     pub segments: Vec<Segment>,
+
+    pub wk_memmove: u32,
+    pub wk_memcpy: u32,
+    pub wk_memset: u32,
+    pub wk_cos: u32,
+    pub wk_sin: u32,
 }
 
 impl LoadedElf {
@@ -31,6 +38,35 @@ impl LoadedElf {
             .map(|ph| ph.p_vaddr)
             .min()
             .unwrap_or(0);
+
+        let mut symbols = Vec::new();
+        // iterate over each symbol entry
+        if let Some((symbol_table, string_table)) = elf.symbol_table()? {
+            for sym in symbol_table {
+                if sym.st_name != 0 {
+                    symbols.push((
+                        string_table.get(sym.st_name as usize)?.to_string(),
+                        sym.st_value,
+                    ));
+                }
+            }
+        }
+
+        let mut wk_memmove = 0;
+        let mut wk_memcpy = 0;
+        let mut wk_memset = 0;
+        let mut wk_cos = 0;
+        let mut wk_sin = 0;
+        for (sym, offset) in symbols {
+            match sym.as_str() {
+                "memset" => wk_memset = offset as u32,
+                "memmove" => wk_memmove = offset as u32,
+                "memcpy" => wk_memcpy = offset as u32,
+                "cos" => wk_cos = offset as u32,
+                "sin" => wk_sin = offset as u32,
+                _ => {}
+            }
+        }
 
         let mut loaded_segments = Vec::new();
 
@@ -55,6 +91,11 @@ impl LoadedElf {
         Ok(LoadedElf {
             base,
             entrypoint: elf.ehdr.e_entry,
+            wk_memmove,
+            wk_memset,
+            wk_memcpy,
+            wk_cos,
+            wk_sin,
             segments: loaded_segments,
         })
     }
