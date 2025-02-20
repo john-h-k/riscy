@@ -474,13 +474,13 @@ impl Core {
         let reg = &mut self.gp_regfile;
 
         match instr {
-            Instruction::lui { rd, imm } => {
+            Instruction::Lui { rd, imm } => {
                 reg.write(rd, imm);
             }
-            Instruction::auipc { rd, imm } => {
+            Instruction::Auipc { rd, imm } => {
                 reg.write(rd, (self.pc as i32).wrapping_add(imm));
             }
-            Instruction::jal { rd, imm } => {
+            Instruction::Jal { rd, imm } => {
                 let ret = self.pc.wrapping_add(4);
                 reg.write(rd, ret as i32);
 
@@ -490,7 +490,7 @@ impl Core {
                     return ExecResult::Jump(self.pc.wrapping_add(imm as u32));
                 }
             }
-            Instruction::jalr { rd, rs1, imm } => {
+            Instruction::Jalr { rd, rs1, imm } => {
                 let ret = self.pc.wrapping_add(4);
                 let target = (reg.read(rs1) as u32).wrapping_add(imm as u32) & !1;
                 reg.write(rd, ret as i32);
@@ -501,105 +501,105 @@ impl Core {
                     return ExecResult::Jump(target);
                 }
             }
-            Instruction::beq { rs1, rs2, imm } => {
+            Instruction::Beq { rs1, rs2, imm } => {
                 if reg.read(rs1) == reg.read(rs2) {
                     return ExecResult::Jump(self.pc.wrapping_add(imm as u32));
                 }
             }
-            Instruction::bne { rs1, rs2, imm } => {
+            Instruction::Bne { rs1, rs2, imm } => {
                 if reg.read(rs1) != reg.read(rs2) {
                     return ExecResult::Jump(self.pc.wrapping_add(imm as u32));
                 }
             }
-            Instruction::blt { rs1, rs2, imm } => {
+            Instruction::Blt { rs1, rs2, imm } => {
                 if reg.read(rs1) < reg.read(rs2) {
                     return ExecResult::Jump(self.pc.wrapping_add(imm as u32));
                 }
             }
-            Instruction::bge { rs1, rs2, imm } => {
+            Instruction::Bge { rs1, rs2, imm } => {
                 if reg.read(rs1) >= reg.read(rs2) {
                     return ExecResult::Jump(self.pc.wrapping_add(imm as u32));
                 }
             }
-            Instruction::bltu { rs1, rs2, imm } => {
+            Instruction::Bltu { rs1, rs2, imm } => {
                 if (reg.read(rs1) as u32) < (reg.read(rs2) as u32) {
                     return ExecResult::Jump(self.pc.wrapping_add(imm as u32));
                 }
             }
-            Instruction::bgeu { rs1, rs2, imm } => {
+            Instruction::Bgeu { rs1, rs2, imm } => {
                 if (reg.read(rs1) as u32) >= (reg.read(rs2) as u32) {
                     return ExecResult::Jump(self.pc.wrapping_add(imm as u32));
                 }
             }
-            Instruction::lb { rd, rs1, imm } => {
+            Instruction::Lb { rd, rs1, imm } => {
                 let addr = (reg.read(rs1) as u32).wrapping_add(imm as u32);
                 let val = self.memory.load::<i8>(addr) as i32;
                 reg.write(rd, val);
             }
-            Instruction::lh { rd, rs1, imm } => {
+            Instruction::Lh { rd, rs1, imm } => {
                 let addr = (reg.read(rs1) as u32).wrapping_add(imm as u32);
                 let val = self.memory.load::<i16>(addr) as i32;
                 reg.write(rd, val);
             }
-            Instruction::lw { rd, rs1, imm } => {
+            Instruction::Lw { rd, rs1, imm } => {
                 let addr = (reg.read(rs1) as u32).wrapping_add(imm as u32);
                 let val = self.memory.load::<u32>(addr) as i32;
                 reg.write(rd, val);
             }
-            Instruction::lbu { rd, rs1, imm } => {
+            Instruction::Lbu { rd, rs1, imm } => {
                 let addr = (reg.read(rs1) as u32).wrapping_add(imm as u32);
                 let val = self.memory.load::<u8>(addr) as i32;
                 reg.write(rd, val);
             }
-            Instruction::lhu { rd, rs1, imm } => {
+            Instruction::Lhu { rd, rs1, imm } => {
                 let addr = (reg.read(rs1) as u32).wrapping_add(imm as u32);
                 let val = self.memory.load::<u16>(addr) as i32;
                 reg.write(rd, val);
             }
-            Instruction::flw { rd, rs1, imm } => {
+            Instruction::Flw { rd, rs1, imm } => {
                 let addr = (reg.read(rs1) as u32).wrapping_add(imm as u32);
                 let val = self.memory.load::<f32>(addr);
                 fp_reg.write_single(rd, val);
             }
-            Instruction::fld { rd, rs1, imm } => {
+            Instruction::Fld { rd, rs1, imm } => {
                 let addr = (reg.read(rs1) as u32).wrapping_add(imm as u32);
                 let val = self.memory.load::<f64>(addr);
                 fp_reg.write_double(rd, val);
             }
-            Instruction::sb { rs1, rs2, imm } => {
+            Instruction::Sb { rs1, rs2, imm } => {
                 let addr = (reg.read(rs1) as u32).wrapping_add(imm as u32);
                 let val = reg.read(rs2) as u8;
                 self.memory.store::<u8>(addr, val);
             }
-            Instruction::sh { rs1, rs2, imm } => {
+            Instruction::Sh { rs1, rs2, imm } => {
                 let addr = (reg.read(rs1) as u32).wrapping_add(imm as u32);
                 let val = reg.read(rs2) as u16;
                 self.memory.store::<u16>(addr, val);
             }
-            Instruction::sw { rs1, rs2, imm } => {
+            Instruction::Sw { rs1, rs2, imm } => {
                 let addr = (reg.read(rs1) as u32).wrapping_add(imm as u32);
                 let val = reg.read(rs2) as u32;
                 self.memory.store::<u32>(addr, val);
             }
-            Instruction::fsw { rs1, rs2, imm } => {
+            Instruction::Fsw { rs1, rs2, imm } => {
                 let addr = (reg.read(rs1) as u32).wrapping_add(imm as u32);
                 let val = fp_reg.read_single(rs2);
                 self.memory.store::<f32>(addr, val);
             }
-            Instruction::fsd { rs1, rs2, imm } => {
+            Instruction::Fsd { rs1, rs2, imm } => {
                 let addr = (reg.read(rs1) as u32).wrapping_add(imm as u32);
                 let val = fp_reg.read_double(rs2);
                 self.memory.store::<f64>(addr, val);
             }
-            Instruction::addi { rd, rs1, imm } => {
+            Instruction::Addi { rd, rs1, imm } => {
                 let res = reg.read(rs1).wrapping_add(imm);
                 reg.write(rd, res);
             }
-            Instruction::slti { rd, rs1, imm } => {
+            Instruction::Slti { rd, rs1, imm } => {
                 let res = if reg.read(rs1) < imm { 1 } else { 0 };
                 reg.write(rd, res);
             }
-            Instruction::sltiu { rd, rs1, imm } => {
+            Instruction::Sltiu { rd, rs1, imm } => {
                 let res = if (reg.read(rs1) as u32) < (imm as u32) {
                     1
                 } else {
@@ -607,48 +607,48 @@ impl Core {
                 };
                 reg.write(rd, res);
             }
-            Instruction::xori { rd, rs1, imm } => {
+            Instruction::Xori { rd, rs1, imm } => {
                 let res = reg.read(rs1) ^ imm;
                 reg.write(rd, res);
             }
-            Instruction::ori { rd, rs1, imm } => {
+            Instruction::Ori { rd, rs1, imm } => {
                 let res = reg.read(rs1) | imm;
                 reg.write(rd, res);
             }
-            Instruction::andi { rd, rs1, imm } => {
+            Instruction::Andi { rd, rs1, imm } => {
                 let res = reg.read(rs1) & imm;
                 reg.write(rd, res);
             }
-            Instruction::slli { rd, rs1, shamt } => {
+            Instruction::Slli { rd, rs1, shamt } => {
                 let res = (reg.read(rs1) as u32) << shamt;
                 reg.write(rd, res as i32);
             }
-            Instruction::srli { rd, rs1, shamt } => {
+            Instruction::Srli { rd, rs1, shamt } => {
                 let res = (reg.read(rs1) as u32) >> shamt;
                 reg.write(rd, res as i32);
             }
-            Instruction::srai { rd, rs1, shamt } => {
+            Instruction::Srai { rd, rs1, shamt } => {
                 let res = reg.read(rs1) >> shamt;
                 reg.write(rd, res);
             }
-            Instruction::add { rd, rs1, rs2 } => {
+            Instruction::Add { rd, rs1, rs2 } => {
                 let res = reg.read(rs1).wrapping_add(reg.read(rs2));
                 reg.write(rd, res);
             }
-            Instruction::sub { rd, rs1, rs2 } => {
+            Instruction::Sub { rd, rs1, rs2 } => {
                 let res = reg.read(rs1).wrapping_sub(reg.read(rs2));
                 reg.write(rd, res);
             }
-            Instruction::sll { rd, rs1, rs2 } => {
+            Instruction::Sll { rd, rs1, rs2 } => {
                 let sh = reg.read(rs2) & 0x1f;
                 let res = (reg.read(rs1) as u32) << sh;
                 reg.write(rd, res as i32);
             }
-            Instruction::slt { rd, rs1, rs2 } => {
+            Instruction::Slt { rd, rs1, rs2 } => {
                 let res = if reg.read(rs1) < reg.read(rs2) { 1 } else { 0 };
                 reg.write(rd, res);
             }
-            Instruction::sltu { rd, rs1, rs2 } => {
+            Instruction::Sltu { rd, rs1, rs2 } => {
                 let res = if (reg.read(rs1) as u32) < (reg.read(rs2) as u32) {
                     1
                 } else {
@@ -656,52 +656,52 @@ impl Core {
                 };
                 reg.write(rd, res);
             }
-            Instruction::xor { rd, rs1, rs2 } => {
+            Instruction::Xor { rd, rs1, rs2 } => {
                 let res = reg.read(rs1) ^ reg.read(rs2);
                 reg.write(rd, res);
             }
-            Instruction::srl { rd, rs1, rs2 } => {
+            Instruction::Srl { rd, rs1, rs2 } => {
                 let sh = reg.read(rs2) & 0x1f;
                 let res = (reg.read(rs1) as u32) >> sh;
                 reg.write(rd, res as i32);
             }
-            Instruction::sra { rd, rs1, rs2 } => {
+            Instruction::Sra { rd, rs1, rs2 } => {
                 let sh = reg.read(rs2) & 0x1f;
                 let res = reg.read(rs1) >> sh;
                 reg.write(rd, res);
             }
-            Instruction::or { rd, rs1, rs2 } => {
+            Instruction::Or { rd, rs1, rs2 } => {
                 let res = reg.read(rs1) | reg.read(rs2);
                 reg.write(rd, res);
             }
-            Instruction::and { rd, rs1, rs2 } => {
+            Instruction::And { rd, rs1, rs2 } => {
                 let res = reg.read(rs1) & reg.read(rs2);
                 reg.write(rd, res);
             }
 
             // m-extension
-            Instruction::mul { rd, rs1, rs2 } => {
+            Instruction::Mul { rd, rs1, rs2 } => {
                 let a = reg.read(rs1);
                 let b = reg.read(rs2);
                 reg.write(rd, a.wrapping_mul(b));
             }
-            Instruction::mulh { rd, rs1, rs2 } => {
+            Instruction::Mulh { rd, rs1, rs2 } => {
                 let a = reg.read(rs1) as i64;
                 let b = reg.read(rs2) as i64;
                 reg.write(rd, (a.wrapping_mul(b) >> 32) as i32);
             }
-            Instruction::mulhsu { rd, rs1, rs2 } => {
+            Instruction::Mulhsu { rd, rs1, rs2 } => {
                 let a = reg.read(rs1) as i64;
                 let b = reg.read(rs2) as u32 as u64;
                 let prod = (a as i128).wrapping_mul(b as i128);
                 reg.write(rd, (prod >> 32) as i32);
             }
-            Instruction::mulhu { rd, rs1, rs2 } => {
+            Instruction::Mulhu { rd, rs1, rs2 } => {
                 let a = reg.read(rs1) as u32 as u64;
                 let b = reg.read(rs2) as u32 as u64;
                 reg.write(rd, (a.wrapping_mul(b) >> 32) as i32);
             }
-            Instruction::div { rd, rs1, rs2 } => {
+            Instruction::Div { rd, rs1, rs2 } => {
                 let dividend = reg.read(rs1);
                 let divisor = reg.read(rs2);
                 reg.write(
@@ -715,7 +715,7 @@ impl Core {
                     },
                 );
             }
-            Instruction::divu { rd, rs1, rs2 } => {
+            Instruction::Divu { rd, rs1, rs2 } => {
                 let dividend = reg.read(rs1) as u32;
                 let divisor = reg.read(rs2) as u32;
                 reg.write(
@@ -727,7 +727,7 @@ impl Core {
                     },
                 );
             }
-            Instruction::rem { rd, rs1, rs2 } => {
+            Instruction::Rem { rd, rs1, rs2 } => {
                 let dividend = reg.read(rs1);
                 let divisor = reg.read(rs2);
                 reg.write(
@@ -741,7 +741,7 @@ impl Core {
                     },
                 );
             }
-            Instruction::remu { rd, rs1, rs2 } => {
+            Instruction::Remu { rd, rs1, rs2 } => {
                 let dividend = reg.read(rs1) as u32;
                 let divisor = reg.read(rs2) as u32;
                 reg.write(
@@ -755,7 +755,7 @@ impl Core {
             }
 
             // f/d arithmetic using fp_reg
-            Instruction::fadd_s {
+            Instruction::Fadd_s {
                 rd,
                 rs1,
                 rs2,
@@ -765,7 +765,7 @@ impl Core {
                 let b = fp_reg.read_single(rs2);
                 fp_reg.write_single(rd, a + b);
             }
-            Instruction::fsub_s {
+            Instruction::Fsub_s {
                 rd,
                 rs1,
                 rs2,
@@ -775,7 +775,7 @@ impl Core {
                 let b = fp_reg.read_single(rs2);
                 fp_reg.write_single(rd, a - b);
             }
-            Instruction::fmul_s {
+            Instruction::Fmul_s {
                 rd,
                 rs1,
                 rs2,
@@ -785,7 +785,7 @@ impl Core {
                 let b = fp_reg.read_single(rs2);
                 fp_reg.write_single(rd, a * b);
             }
-            Instruction::fmadd_s {
+            Instruction::Fmadd_s {
                 rd,
                 rs1,
                 rs2,
@@ -797,7 +797,7 @@ impl Core {
                 let c = fp_reg.read_single(rs3);
                 fp_reg.write_single(rd, a * b + c);
             }
-            Instruction::fmsub_s {
+            Instruction::Fmsub_s {
                 rd,
                 rs1,
                 rs2,
@@ -809,7 +809,7 @@ impl Core {
                 let c = fp_reg.read_single(rs3);
                 fp_reg.write_single(rd, a * b - c);
             }
-            Instruction::fmadd_d {
+            Instruction::Fmadd_d {
                 rd,
                 rs1,
                 rs2,
@@ -821,7 +821,7 @@ impl Core {
                 let c = fp_reg.read_double(rs3);
                 fp_reg.write_double(rd, a * b + c);
             }
-            Instruction::fmsub_d {
+            Instruction::Fmsub_d {
                 rd,
                 rs1,
                 rs2,
@@ -833,7 +833,7 @@ impl Core {
                 let c = fp_reg.read_double(rs3);
                 fp_reg.write_double(rd, a * b - c);
             }
-            Instruction::fnmadd_s {
+            Instruction::Fnmadd_s {
                 rd,
                 rs1,
                 rs2,
@@ -845,7 +845,7 @@ impl Core {
                 let c = fp_reg.read_single(rs3);
                 fp_reg.write_single(rd, -(a * b) + c);
             }
-            Instruction::fnmsub_s {
+            Instruction::Fnmsub_s {
                 rd,
                 rs1,
                 rs2,
@@ -857,7 +857,7 @@ impl Core {
                 let c = fp_reg.read_single(rs3);
                 fp_reg.write_single(rd, -(a * b) - c);
             }
-            Instruction::fnmadd_d {
+            Instruction::Fnmadd_d {
                 rd,
                 rs1,
                 rs2,
@@ -869,7 +869,7 @@ impl Core {
                 let c = fp_reg.read_double(rs3);
                 fp_reg.write_double(rd, a * b + c);
             }
-            Instruction::fnmsub_d {
+            Instruction::Fnmsub_d {
                 rd,
                 rs1,
                 rs2,
@@ -882,7 +882,7 @@ impl Core {
                 fp_reg.write_double(rd, a * b - c);
             }
 
-            Instruction::fdiv_s {
+            Instruction::Fdiv_s {
                 rd,
                 rs1,
                 rs2,
@@ -892,32 +892,32 @@ impl Core {
                 let b = fp_reg.read_single(rs2);
                 fp_reg.write_single(rd, a / b);
             }
-            Instruction::fsgnj_s { rd, rs1, rs2 } => {
+            Instruction::Fsgnj_s { rd, rs1, rs2 } => {
                 let a = fp_reg.read_single(rs1);
                 let b = fp_reg.read_single(rs2);
                 fp_reg.write_single(rd, a.copysign(b));
             }
-            Instruction::fsgnjn_s { rd, rs1, rs2 } => {
+            Instruction::Fsgnjn_s { rd, rs1, rs2 } => {
                 let a = fp_reg.read_single(rs1);
                 let b = fp_reg.read_single(rs2);
                 fp_reg.write_single(rd, a.copysign(-b));
             }
-            Instruction::fsgnjx_s { rd, rs1, rs2 } => {
+            Instruction::Fsgnjx_s { rd, rs1, rs2 } => {
                 let a = fp_reg.read_single(rs1);
                 let b = fp_reg.read_single(rs2);
                 fp_reg.write_single(rd, a.copysign(a * b));
             }
-            Instruction::fmin_s { rd, rs1, rs2 } => {
+            Instruction::Fmin_s { rd, rs1, rs2 } => {
                 let a = fp_reg.read_single(rs1);
                 let b = fp_reg.read_single(rs2);
                 fp_reg.write_single(rd, a.min(b));
             }
-            Instruction::fmax_s { rd, rs1, rs2 } => {
+            Instruction::Fmax_s { rd, rs1, rs2 } => {
                 let a = fp_reg.read_single(rs1);
                 let b = fp_reg.read_single(rs2);
                 fp_reg.write_single(rd, a.max(b));
             }
-            Instruction::fadd_d {
+            Instruction::Fadd_d {
                 rd,
                 rs1,
                 rs2,
@@ -927,7 +927,7 @@ impl Core {
                 let b = fp_reg.read_double(rs2);
                 fp_reg.write_double(rd, a + b);
             }
-            Instruction::fsub_d {
+            Instruction::Fsub_d {
                 rd,
                 rs1,
                 rs2,
@@ -937,7 +937,7 @@ impl Core {
                 let b = fp_reg.read_double(rs2);
                 fp_reg.write_double(rd, a - b);
             }
-            Instruction::fmul_d {
+            Instruction::Fmul_d {
                 rd,
                 rs1,
                 rs2,
@@ -947,7 +947,7 @@ impl Core {
                 let b = fp_reg.read_double(rs2);
                 fp_reg.write_double(rd, a * b);
             }
-            Instruction::fdiv_d {
+            Instruction::Fdiv_d {
                 rd,
                 rs1,
                 rs2,
@@ -957,128 +957,128 @@ impl Core {
                 let b = fp_reg.read_double(rs2);
                 fp_reg.write_double(rd, a / b);
             }
-            Instruction::fsgnj_d { rd, rs1, rs2 } => {
+            Instruction::Fsgnj_d { rd, rs1, rs2 } => {
                 let a = fp_reg.read_double(rs1);
                 let b = fp_reg.read_double(rs2);
                 fp_reg.write_double(rd, a.copysign(b));
             }
-            Instruction::fsgnjn_d { rd, rs1, rs2 } => {
+            Instruction::Fsgnjn_d { rd, rs1, rs2 } => {
                 let a = fp_reg.read_double(rs1);
                 let b = fp_reg.read_double(rs2);
                 fp_reg.write_double(rd, a.copysign(-b));
             }
-            Instruction::fsgnjx_d { rd, rs1, rs2 } => {
+            Instruction::Fsgnjx_d { rd, rs1, rs2 } => {
                 let a = fp_reg.read_double(rs1);
                 let b = fp_reg.read_double(rs2);
                 fp_reg.write_double(rd, a.copysign(a * b));
             }
-            Instruction::fmin_d { rd, rs1, rs2 } => {
+            Instruction::Fmin_d { rd, rs1, rs2 } => {
                 let a = fp_reg.read_double(rs1);
                 let b = fp_reg.read_double(rs2);
                 fp_reg.write_double(rd, a.min(b));
             }
-            Instruction::fmax_d { rd, rs1, rs2 } => {
+            Instruction::Fmax_d { rd, rs1, rs2 } => {
                 let a = fp_reg.read_double(rs1);
                 let b = fp_reg.read_double(rs2);
                 fp_reg.write_double(rd, a.max(b));
             }
 
             // fmv Instructions
-            Instruction::fmv_s_w { rd, rs1 } => {
+            Instruction::Fmv_s_w { rd, rs1 } => {
                 let bits = fp_reg.read_u32(rs1);
                 reg.write(rd, bits as i32);
             }
-            Instruction::fmv_w_s { rd, rs1 } => {
+            Instruction::Fmv_w_s { rd, rs1 } => {
                 let bits = reg.read(rs1);
                 fp_reg.write_u32(rd, bits as u32);
             }
-            Instruction::fmv_x_d { rd, rs1 } => {
+            Instruction::Fmv_x_d { rd, rs1 } => {
                 panic!("not supported on rv32i");
                 // let bits = fp_reg.read_u32(rs1).to_bits();
                 // reg.write(rd, bits as u32; // rv32: lower 32 bits onl);
             }
-            Instruction::fmv_d_x { rd, rs1 } => {
+            Instruction::Fmv_d_x { rd, rs1 } => {
                 panic!("not supported on rv32i");
                 // let bits = reg.read(rs1) as u64;
                 // fp_reg.write_double(rd, f64::from_bits(bits));
             }
 
             // fcvt Instructions
-            Instruction::fcvt_s_w { rd, rs1 } => {
+            Instruction::Fcvt_s_w { rd, rs1 } => {
                 let a = reg.read(rs1);
                 fp_reg.write_single(rd, a as f32);
             }
-            Instruction::fcvt_s_wu { rd, rs1 } => {
+            Instruction::Fcvt_s_wu { rd, rs1 } => {
                 let a = reg.read(rs1) as u32;
                 fp_reg.write_single(rd, a as f32);
             }
-            Instruction::fcvt_w_s { rd, rs1 } => {
+            Instruction::Fcvt_w_s { rd, rs1 } => {
                 let f = fp_reg.read_single(rs1);
                 reg.write(rd, f as i32);
             }
-            Instruction::fcvt_wu_s { rd, rs1 } => {
+            Instruction::Fcvt_wu_s { rd, rs1 } => {
                 let f = fp_reg.read_single(rs1);
                 reg.write(rd, f as u32 as i32);
             }
-            Instruction::fcvt_d_w { rd, rs1 } => {
+            Instruction::Fcvt_d_w { rd, rs1 } => {
                 let a = reg.read(rs1);
                 fp_reg.write_double(rd, a as f64);
             }
-            Instruction::fcvt_d_wu { rd, rs1 } => {
+            Instruction::Fcvt_d_wu { rd, rs1 } => {
                 let a = reg.read(rs1) as u32;
                 fp_reg.write_double(rd, a as f64);
             }
-            Instruction::fcvt_w_d { rd, rs1 } => {
+            Instruction::Fcvt_w_d { rd, rs1 } => {
                 let d = fp_reg.read_double(rs1);
                 reg.write(rd, d as i32);
             }
-            Instruction::fcvt_wu_d { rd, rs1 } => {
+            Instruction::Fcvt_wu_d { rd, rs1 } => {
                 let d = fp_reg.read_double(rs1);
                 reg.write(rd, d as u32 as i32);
             }
-            Instruction::fcvt_s_d { rd, rs1 } => {
+            Instruction::Fcvt_s_d { rd, rs1 } => {
                 let d = fp_reg.read_double(rs1);
                 fp_reg.write_single(rd, d as f32);
             }
-            Instruction::fcvt_d_s { rd, rs1 } => {
+            Instruction::Fcvt_d_s { rd, rs1 } => {
                 let f = fp_reg.read_single(rs1);
                 fp_reg.write_double(rd, f as f64);
             }
 
             // fp compare Instructions
-            Instruction::feq_s { rd, rs1, rs2 } => {
+            Instruction::Feq_s { rd, rs1, rs2 } => {
                 let a = fp_reg.read_single(rs1);
                 let b = fp_reg.read_single(rs2);
                 reg.write(rd, if a == b { 1 } else { 0 });
             }
-            Instruction::flt_s { rd, rs1, rs2 } => {
+            Instruction::Flt_s { rd, rs1, rs2 } => {
                 let a = fp_reg.read_single(rs1);
                 let b = fp_reg.read_single(rs2);
                 reg.write(rd, if a < b { 1 } else { 0 });
             }
-            Instruction::fle_s { rd, rs1, rs2 } => {
+            Instruction::Fle_s { rd, rs1, rs2 } => {
                 let a = fp_reg.read_single(rs1);
                 let b = fp_reg.read_single(rs2);
                 reg.write(rd, if a <= b { 1 } else { 0 });
             }
-            Instruction::feq_d { rd, rs1, rs2 } => {
+            Instruction::Feq_d { rd, rs1, rs2 } => {
                 let a = fp_reg.read_double(rs1);
                 let b = fp_reg.read_double(rs2);
                 reg.write(rd, if a == b { 1 } else { 0 });
             }
-            Instruction::flt_d { rd, rs1, rs2 } => {
+            Instruction::Flt_d { rd, rs1, rs2 } => {
                 let a = fp_reg.read_double(rs1);
                 let b = fp_reg.read_double(rs2);
                 reg.write(rd, if a < b { 1 } else { 0 });
             }
-            Instruction::fle_d { rd, rs1, rs2 } => {
+            Instruction::Fle_d { rd, rs1, rs2 } => {
                 let a = fp_reg.read_double(rs1);
                 let b = fp_reg.read_double(rs2);
                 reg.write(rd, if a <= b { 1 } else { 0 });
             }
-            Instruction::fence { .. } => { /* no-op */ }
-            Instruction::fence_i => { /* no-op */ }
-            Instruction::ecall => {
+            Instruction::Fence { .. } => { /* no-op */ }
+            Instruction::Fence_i => { /* no-op */ }
+            Instruction::Ecall => {
                 let syscall = self.read(Register::A(7));
                 match syscall {
                     SYSCALL_EXIT => return ExecResult::Exit,
@@ -1098,22 +1098,22 @@ impl Core {
                     _ => {} // _ => panic!("unknown syscall '{syscall}'"),
                 }
             }
-            Instruction::frrm { rd } => {
+            Instruction::Frrm { rd } => {
                 let rm = fp_reg.fcsr.rm;
                 reg.write(rd, rm as i32);
             }
-            Instruction::fsrm { rd, rs1 } => {
+            Instruction::Fsrm { rd, rs1 } => {
                 let rm = fp_reg.fcsr.rm;
                 reg.write(rd, rm as i32);
 
                 let new_rm = reg.read(rs1);
                 fp_reg.fcsr.rm = new_rm.try_into().expect("bad rounding mode");
             }
-            Instruction::ebreak => {
+            Instruction::Ebreak => {
                 todo!("ebreak encountered");
             }
 
-            Instruction::unknown(val) => {
+            Instruction::Unknown(val) => {
                 panic!("unknown instruction!");
             }
         }

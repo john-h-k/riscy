@@ -1,515 +1,518 @@
 #[derive(Debug, Clone, Copy)]
 pub enum Instruction {
-    unknown(u32),
+    Unknown(u32),
 
-    lui {
+    Lui {
         rd: u8,
         imm: i32,
     },
-    auipc {
+    Auipc {
         rd: u8,
         imm: i32,
     },
-    jal {
+    Jal {
         rd: u8,
         imm: i32,
     },
-    jalr {
+    Jalr {
         rd: u8,
         rs1: u8,
         imm: i32,
     },
-    beq {
+    Beq {
         rs1: u8,
         rs2: u8,
         imm: i32,
     },
-    bne {
+    Bne {
         rs1: u8,
         rs2: u8,
         imm: i32,
     },
-    blt {
+    Blt {
         rs1: u8,
         rs2: u8,
         imm: i32,
     },
-    bge {
+    Bge {
         rs1: u8,
         rs2: u8,
         imm: i32,
     },
-    bltu {
+    Bltu {
         rs1: u8,
         rs2: u8,
         imm: i32,
     },
-    bgeu {
+    Bgeu {
         rs1: u8,
         rs2: u8,
         imm: i32,
     },
-    lb {
+    Lb {
         rd: u8,
         rs1: u8,
         imm: i32,
     },
-    lh {
+    Lh {
         rd: u8,
         rs1: u8,
         imm: i32,
     },
-    lw {
+    Lw {
         rd: u8,
         rs1: u8,
         imm: i32,
     },
-    lbu {
+    Lbu {
         rd: u8,
         rs1: u8,
         imm: i32,
     },
-    lhu {
+    Lhu {
         rd: u8,
         rs1: u8,
         imm: i32,
     },
-    sb {
+    Sb {
         rs1: u8,
         rs2: u8,
         imm: i32,
     },
-    sh {
+    Sh {
         rs1: u8,
         rs2: u8,
         imm: i32,
     },
-    sw {
+    Sw {
         rs1: u8,
         rs2: u8,
         imm: i32,
     },
-    addi {
+    Addi {
         rd: u8,
         rs1: u8,
         imm: i32,
     },
-    slti {
+    Slti {
         rd: u8,
         rs1: u8,
         imm: i32,
     },
-    sltiu {
+    Sltiu {
         rd: u8,
         rs1: u8,
         imm: i32,
     },
-    xori {
+    Xori {
         rd: u8,
         rs1: u8,
         imm: i32,
     },
-    ori {
+    Ori {
         rd: u8,
         rs1: u8,
         imm: i32,
     },
-    andi {
+    Andi {
         rd: u8,
         rs1: u8,
         imm: i32,
     },
-    slli {
+    Slli {
         rd: u8,
         rs1: u8,
         shamt: u8,
     },
-    srli {
+    Srli {
         rd: u8,
         rs1: u8,
         shamt: u8,
     },
-    srai {
+    Srai {
         rd: u8,
         rs1: u8,
         shamt: u8,
     },
-    add {
+    Add {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    sub {
+    Sub {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    sll {
+    Sll {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    slt {
+    Slt {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    sltu {
+    Sltu {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    xor {
+    Xor {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    srl {
+    Srl {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    sra {
+    Sra {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    or {
+    Or {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    and {
+    And {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    fence {
+    Fence {
         pred: u8,
         succ: u8,
     },
-    fence_i,
-    ecall,
-    ebreak,
 
-    frrm {
+    Fence_i,
+
+    Ecall,
+
+    Ebreak,
+
+    Frrm {
         rd: u8,
     },
-    fsrm {
+    Fsrm {
         rd: u8,
         rs1: u8,
     },
 
     // m-extension
-    mul {
+    Mul {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    mulh {
+    Mulh {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    mulhsu {
+    Mulhsu {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    mulhu {
+    Mulhu {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    div {
+    Div {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    divu {
+    Divu {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    rem {
+    Rem {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    remu {
+    Remu {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
 
     // f/d arithmetic (fp add/sub/mul/div, etc)
-    fadd_s {
+    Fadd_s {
         rd: u8,
         rs1: u8,
         rs2: u8,
         rm: u8,
     },
-    fsub_s {
+    Fsub_s {
         rd: u8,
         rs1: u8,
         rs2: u8,
         rm: u8,
     },
-    fmul_s {
+    Fmul_s {
         rd: u8,
         rs1: u8,
         rs2: u8,
         rm: u8,
     },
-    fmadd_s {
+    Fmadd_s {
         rd: u8,
         rs1: u8,
         rs2: u8,
         rs3: u8,
         rm: u8,
     },
-    fmsub_s {
+    Fmsub_s {
         rd: u8,
         rs1: u8,
         rs2: u8,
         rs3: u8,
         rm: u8,
     },
-    fnmadd_s {
+    Fnmadd_s {
         rd: u8,
         rs1: u8,
         rs2: u8,
         rs3: u8,
         rm: u8,
     },
-    fnmsub_s {
+    Fnmsub_s {
         rd: u8,
         rs1: u8,
         rs2: u8,
         rs3: u8,
         rm: u8,
     },
-    fdiv_s {
+    Fdiv_s {
         rd: u8,
         rs1: u8,
         rs2: u8,
         rm: u8,
     },
-    fsgnj_s {
+    Fsgnj_s {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    fsgnjn_s {
+    Fsgnjn_s {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    fsgnjx_s {
+    Fsgnjx_s {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    fmin_s {
+    Fmin_s {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    fmax_s {
+    Fmax_s {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    fadd_d {
-        rd: u8,
-        rs1: u8,
-        rs2: u8,
-        rm: u8,
-    },
-    fsub_d {
+    Fadd_d {
         rd: u8,
         rs1: u8,
         rs2: u8,
         rm: u8,
     },
-    fmul_d {
+    Fsub_d {
         rd: u8,
         rs1: u8,
         rs2: u8,
         rm: u8,
     },
-    fmadd_d {
+    Fmul_d {
+        rd: u8,
+        rs1: u8,
+        rs2: u8,
+        rm: u8,
+    },
+    Fmadd_d {
         rd: u8,
         rs1: u8,
         rs2: u8,
         rs3: u8,
         rm: u8,
     },
-    fmsub_d {
+    Fmsub_d {
         rd: u8,
         rs1: u8,
         rs2: u8,
         rs3: u8,
         rm: u8,
     },
-    fnmadd_d {
+    Fnmadd_d {
         rd: u8,
         rs1: u8,
         rs2: u8,
         rs3: u8,
         rm: u8,
     },
-    fnmsub_d {
+    Fnmsub_d {
         rd: u8,
         rs1: u8,
         rs2: u8,
         rs3: u8,
         rm: u8,
     },
-    fdiv_d {
+    Fdiv_d {
         rd: u8,
         rs1: u8,
         rs2: u8,
         rm: u8,
     },
-    fsgnj_d {
+    Fsgnj_d {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    fsgnjn_d {
+    Fsgnjn_d {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    fsgnjx_d {
+    Fsgnjx_d {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    fmin_d {
+    Fmin_d {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    fmax_d {
+    Fmax_d {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
 
     // fmv instructions (bit-level moves between int and fp)
-    fmv_s_w {
+    Fmv_s_w {
         rd: u8,
         rs1: u8,
     }, // move from single fp to int reg
-    fmv_w_s {
+    Fmv_w_s {
         rd: u8,
         rs1: u8,
     }, // move from int reg to single fp
-    fmv_x_d {
+    Fmv_x_d {
         rd: u8,
         rs1: u8,
     }, // move from double fp to int reg (rv32: lower 32 bits)
-    fmv_d_x {
+    Fmv_d_x {
         rd: u8,
         rs1: u8,
     }, // move from int reg to double fp
 
     // fcvt instructions (conversions between fp and int, and between precisions)
-    fcvt_s_w {
+    Fcvt_s_w {
         rd: u8,
         rs1: u8,
     }, // signed int -> single
-    fcvt_s_wu {
+    Fcvt_s_wu {
         rd: u8,
         rs1: u8,
     }, // unsigned int -> single
-    fcvt_w_s {
+    Fcvt_w_s {
         rd: u8,
         rs1: u8,
     }, // single -> signed int
-    fcvt_wu_s {
+    Fcvt_wu_s {
         rd: u8,
         rs1: u8,
     }, // single -> unsigned int
 
-    fcvt_d_w {
+    Fcvt_d_w {
         rd: u8,
         rs1: u8,
     }, // signed int -> double
-    fcvt_d_wu {
+    Fcvt_d_wu {
         rd: u8,
         rs1: u8,
     }, // unsigned int -> double
-    fcvt_w_d {
+    Fcvt_w_d {
         rd: u8,
         rs1: u8,
     }, // double -> signed int
-    fcvt_wu_d {
+    Fcvt_wu_d {
         rd: u8,
         rs1: u8,
     }, // double -> unsigned int
 
-    fcvt_s_d {
+    Fcvt_s_d {
         rd: u8,
         rs1: u8,
     }, // double -> single
-    fcvt_d_s {
+    Fcvt_d_s {
         rd: u8,
         rs1: u8,
     }, // single -> double
 
     // floating point compares (set int reg to 1 if true, else 0)
-    feq_s {
+    Feq_s {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    flt_s {
+    Flt_s {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    fle_s {
+    Fle_s {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    feq_d {
+    Feq_d {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    flt_d {
+    Flt_d {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    fle_d {
+    Fle_d {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
 
     // loads: imm is 12-bit signed immediate (I-type)
-    flw {
+    Flw {
         rd: u8,
         rs1: u8,
         imm: i32,
     },
-    fld {
+    Fld {
         rd: u8,
         rs1: u8,
         imm: i32,
     },
     // stores: S-type with 12-bit immediate
-    fsw {
+    Fsw {
         rs1: u8,
         rs2: u8,
         imm: i32,
     },
-    fsd {
+    Fsd {
         rs1: u8,
         rs2: u8,
         imm: i32,
@@ -538,13 +541,13 @@ impl Instruction {
                 // lui
                 let rd = ((inst >> 7) & 0x1f) as u8;
                 let imm = (inst & 0xfffff000) as i32;
-                Instruction::lui { rd, imm }
+                Instruction::Lui { rd, imm }
             }
             0x17 => {
                 // auipc
                 let rd = ((inst >> 7) & 0x1f) as u8;
                 let imm = (inst & 0xfffff000) as i32;
-                Instruction::auipc { rd, imm }
+                Instruction::Auipc { rd, imm }
             }
             0x6f => {
                 // jal
@@ -554,7 +557,7 @@ impl Instruction {
                     | (((inst >> 20) & 0x1) << 11)
                     | (((inst >> 21) & 0x3ff) << 1);
                 let imm = sign_extend(imm_raw, 21);
-                Instruction::jal { rd, imm }
+                Instruction::Jal { rd, imm }
             }
             0x67 => {
                 // jalr (i-type)
@@ -562,9 +565,9 @@ impl Instruction {
                     let rd = ((inst >> 7) & 0x1f) as u8;
                     let rs1 = ((inst >> 15) & 0x1f) as u8;
                     let imm = sign_extend((inst >> 20) & 0xfff, 12);
-                    Instruction::jalr { rd, rs1, imm }
+                    Instruction::Jalr { rd, rs1, imm }
                 } else {
-                    Instruction::unknown(inst)
+                    Instruction::Unknown(inst)
                 }
             }
             0x63 => {
@@ -578,13 +581,13 @@ impl Instruction {
                     | (((inst >> 8) & 0xf) << 1);
                 let imm = sign_extend(imm_raw, 13);
                 match funct3 {
-                    0 => Instruction::beq { rs1, rs2, imm },
-                    1 => Instruction::bne { rs1, rs2, imm },
-                    4 => Instruction::blt { rs1, rs2, imm },
-                    5 => Instruction::bge { rs1, rs2, imm },
-                    6 => Instruction::bltu { rs1, rs2, imm },
-                    7 => Instruction::bgeu { rs1, rs2, imm },
-                    _ => Instruction::unknown(inst),
+                    0 => Instruction::Beq { rs1, rs2, imm },
+                    1 => Instruction::Bne { rs1, rs2, imm },
+                    4 => Instruction::Blt { rs1, rs2, imm },
+                    5 => Instruction::Bge { rs1, rs2, imm },
+                    6 => Instruction::Bltu { rs1, rs2, imm },
+                    7 => Instruction::Bgeu { rs1, rs2, imm },
+                    _ => Instruction::Unknown(inst),
                 }
             }
             0x03 => {
@@ -594,12 +597,12 @@ impl Instruction {
                 let rs1 = ((inst >> 15) & 0x1f) as u8;
                 let imm = sign_extend((inst >> 20) & 0xfff, 12);
                 match funct3 {
-                    0 => Instruction::lb { rd, rs1, imm },
-                    1 => Instruction::lh { rd, rs1, imm },
-                    2 => Instruction::lw { rd, rs1, imm },
-                    4 => Instruction::lbu { rd, rs1, imm },
-                    5 => Instruction::lhu { rd, rs1, imm },
-                    _ => Instruction::unknown(inst),
+                    0 => Instruction::Lb { rd, rs1, imm },
+                    1 => Instruction::Lh { rd, rs1, imm },
+                    2 => Instruction::Lw { rd, rs1, imm },
+                    4 => Instruction::Lbu { rd, rs1, imm },
+                    5 => Instruction::Lhu { rd, rs1, imm },
+                    _ => Instruction::Unknown(inst),
                 }
             }
             0x23 => {
@@ -610,10 +613,10 @@ impl Instruction {
                 let imm_raw = (((inst >> 25) & 0x7f) << 5) | ((inst >> 7) & 0x1f);
                 let imm = sign_extend(imm_raw, 12);
                 match funct3 {
-                    0 => Instruction::sb { rs1, rs2, imm },
-                    1 => Instruction::sh { rs1, rs2, imm },
-                    2 => Instruction::sw { rs1, rs2, imm },
-                    _ => Instruction::unknown(inst),
+                    0 => Instruction::Sb { rs1, rs2, imm },
+                    1 => Instruction::Sh { rs1, rs2, imm },
+                    2 => Instruction::Sw { rs1, rs2, imm },
+                    _ => Instruction::Unknown(inst),
                 }
             }
             0x13 => {
@@ -624,89 +627,89 @@ impl Instruction {
                 match funct3 {
                     0 => {
                         let imm = sign_extend((inst >> 20) & 0xfff, 12);
-                        Instruction::addi { rd, rs1, imm }
+                        Instruction::Addi { rd, rs1, imm }
                     }
                     2 => {
                         let imm = sign_extend((inst >> 20) & 0xfff, 12);
-                        Instruction::slti { rd, rs1, imm }
+                        Instruction::Slti { rd, rs1, imm }
                     }
                     3 => {
                         let imm = sign_extend((inst >> 20) & 0xfff, 12);
-                        Instruction::sltiu { rd, rs1, imm }
+                        Instruction::Sltiu { rd, rs1, imm }
                     }
                     4 => {
                         let imm = sign_extend((inst >> 20) & 0xfff, 12);
-                        Instruction::xori { rd, rs1, imm }
+                        Instruction::Xori { rd, rs1, imm }
                     }
                     6 => {
                         let imm = sign_extend((inst >> 20) & 0xfff, 12);
-                        Instruction::ori { rd, rs1, imm }
+                        Instruction::Ori { rd, rs1, imm }
                     }
                     7 => {
                         let imm = sign_extend((inst >> 20) & 0xfff, 12);
-                        Instruction::andi { rd, rs1, imm }
+                        Instruction::Andi { rd, rs1, imm }
                     }
                     1 => {
                         // slli; ensure upper bits are 0
                         let shamt = ((inst >> 20) & 0x1f) as u8;
-                        Instruction::slli { rd, rs1, shamt }
+                        Instruction::Slli { rd, rs1, shamt }
                     }
                     5 => {
                         // srli / srai
                         let shamt = ((inst >> 20) & 0x1f) as u8;
                         let funct7 = inst >> 25;
                         if funct7 == 0 {
-                            Instruction::srli { rd, rs1, shamt }
+                            Instruction::Srli { rd, rs1, shamt }
                         } else if funct7 == 0x20 {
-                            Instruction::srai { rd, rs1, shamt }
+                            Instruction::Srai { rd, rs1, shamt }
                         } else {
-                            Instruction::unknown(inst)
+                            Instruction::Unknown(inst)
                         }
                     }
-                    _ => Instruction::unknown(inst),
+                    _ => Instruction::Unknown(inst),
                 }
             }
             0x33 => {
                 // m-extension: only when funct7==0x1
                 if funct7 == 0x1 {
                     match funct3 {
-                        0x0 => Instruction::mul { rd, rs1, rs2 },
-                        0x1 => Instruction::mulh { rd, rs1, rs2 },
-                        0x2 => Instruction::mulhsu { rd, rs1, rs2 },
-                        0x3 => Instruction::mulhu { rd, rs1, rs2 },
-                        0x4 => Instruction::div { rd, rs1, rs2 },
-                        0x5 => Instruction::divu { rd, rs1, rs2 },
-                        0x6 => Instruction::rem { rd, rs1, rs2 },
-                        0x7 => Instruction::remu { rd, rs1, rs2 },
-                        _ => Instruction::unknown(inst),
+                        0x0 => Instruction::Mul { rd, rs1, rs2 },
+                        0x1 => Instruction::Mulh { rd, rs1, rs2 },
+                        0x2 => Instruction::Mulhsu { rd, rs1, rs2 },
+                        0x3 => Instruction::Mulhu { rd, rs1, rs2 },
+                        0x4 => Instruction::Div { rd, rs1, rs2 },
+                        0x5 => Instruction::Divu { rd, rs1, rs2 },
+                        0x6 => Instruction::Rem { rd, rs1, rs2 },
+                        0x7 => Instruction::Remu { rd, rs1, rs2 },
+                        _ => Instruction::Unknown(inst),
                     }
                 } else {
                     match funct3 {
                         0 => {
                             if funct7 == 0 {
-                                Instruction::add { rd, rs1, rs2 }
+                                Instruction::Add { rd, rs1, rs2 }
                             } else if funct7 == 0x20 {
-                                Instruction::sub { rd, rs1, rs2 }
+                                Instruction::Sub { rd, rs1, rs2 }
                             } else {
-                                Instruction::unknown(inst)
+                                Instruction::Unknown(inst)
                             }
                         }
-                        1 => Instruction::sll { rd, rs1, rs2 },
-                        2 => Instruction::slt { rd, rs1, rs2 },
-                        3 => Instruction::sltu { rd, rs1, rs2 },
-                        4 => Instruction::xor { rd, rs1, rs2 },
+                        1 => Instruction::Sll { rd, rs1, rs2 },
+                        2 => Instruction::Slt { rd, rs1, rs2 },
+                        3 => Instruction::Sltu { rd, rs1, rs2 },
+                        4 => Instruction::Xor { rd, rs1, rs2 },
                         5 => {
                             if funct7 == 0 {
-                                Instruction::srl { rd, rs1, rs2 }
+                                Instruction::Srl { rd, rs1, rs2 }
                             } else if funct7 == 0x20 {
-                                Instruction::sra { rd, rs1, rs2 }
+                                Instruction::Sra { rd, rs1, rs2 }
                             } else {
-                                Instruction::unknown(inst)
+                                Instruction::Unknown(inst)
                             }
                         }
-                        6 => Instruction::or { rd, rs1, rs2 },
-                        7 => Instruction::and { rd, rs1, rs2 },
-                        _ => Instruction::unknown(inst),
+                        6 => Instruction::Or { rd, rs1, rs2 },
+                        7 => Instruction::And { rd, rs1, rs2 },
+                        _ => Instruction::Unknown(inst),
                     }
                 }
             }
@@ -716,213 +719,213 @@ impl Instruction {
                 if funct3 == 0 {
                     let pred = ((inst >> 24) & 0xf) as u8;
                     let succ = ((inst >> 20) & 0xf) as u8;
-                    Instruction::fence { pred, succ }
+                    Instruction::Fence { pred, succ }
                 } else if funct3 == 1 {
-                    Instruction::fence_i
+                    Instruction::Fence_i
                 } else {
-                    Instruction::unknown(inst)
+                    Instruction::Unknown(inst)
                 }
             }
             0x73 => {
                 let funct3 = (inst >> 12) & 0x7;
                 let imm = (inst >> 20) & 0xfff;
                 match (funct3, imm) {
-                    (0b000000000000, 0b000) => Instruction::ecall,
-                    (0b000000000000, 0b001) => Instruction::ebreak,
-                    (0b000000000010, 0b010) => Instruction::frrm { rd },
-                    (0b000000000010, 0b001) => Instruction::fsrm { rd, rs1 },
-                    _ => Instruction::unknown(inst),
+                    (0b000000000000, 0b000) => Instruction::Ecall,
+                    (0b000000000000, 0b001) => Instruction::Ebreak,
+                    (0b000000000010, 0b010) => Instruction::Frrm { rd },
+                    (0b000000000010, 0b001) => Instruction::Fsrm { rd, rs1 },
+                    _ => Instruction::Unknown(inst),
                 }
             }
             0x53 => match funct7 {
                 // Single-precision arithmetic
                 0x00 => {
                     let rm = ((inst >> 12) & 0x7) as u8;
-                    Instruction::fadd_s { rd, rs1, rs2, rm }
+                    Instruction::Fadd_s { rd, rs1, rs2, rm }
                 }
 
                 0x04 => {
                     let rm = ((inst >> 12) & 0x7) as u8;
-                    Instruction::fsub_s { rd, rs1, rs2, rm }
+                    Instruction::Fsub_s { rd, rs1, rs2, rm }
                 }
 
                 0x08 => {
                     let rm = ((inst >> 12) & 0x7) as u8;
-                    Instruction::fmul_s { rd, rs1, rs2, rm }
+                    Instruction::Fmul_s { rd, rs1, rs2, rm }
                 }
 
                 0x0c => {
                     let rm = ((inst >> 12) & 0x7) as u8;
-                    Instruction::fdiv_s { rd, rs1, rs2, rm }
+                    Instruction::Fdiv_s { rd, rs1, rs2, rm }
                 }
 
                 // Single-precision sign-injection ops
                 0x10 => match funct3 {
-                    0x0 => Instruction::fsgnj_s { rd, rs1, rs2 },
-                    0x1 => Instruction::fsgnjn_s { rd, rs1, rs2 },
-                    0x2 => Instruction::fsgnjx_s { rd, rs1, rs2 },
-                    _ => Instruction::unknown(inst),
+                    0x0 => Instruction::Fsgnj_s { rd, rs1, rs2 },
+                    0x1 => Instruction::Fsgnjn_s { rd, rs1, rs2 },
+                    0x2 => Instruction::Fsgnjx_s { rd, rs1, rs2 },
+                    _ => Instruction::Unknown(inst),
                 },
 
                 0x11 => match funct3 {
-                    0x0 => Instruction::fsgnj_d { rd, rs1, rs2 },
-                    0x1 => Instruction::fsgnjn_d { rd, rs1, rs2 },
-                    0x2 => Instruction::fsgnjx_d { rd, rs1, rs2 },
-                    _ => Instruction::unknown(inst),
+                    0x0 => Instruction::Fsgnj_d { rd, rs1, rs2 },
+                    0x1 => Instruction::Fsgnjn_d { rd, rs1, rs2 },
+                    0x2 => Instruction::Fsgnjx_d { rd, rs1, rs2 },
+                    _ => Instruction::Unknown(inst),
                 },
 
                 // Single-precision min/max
                 0x14 => match funct3 {
-                    0x0 => Instruction::fmin_s { rd, rs1, rs2 },
-                    0x1 => Instruction::fmax_s { rd, rs1, rs2 },
-                    _ => Instruction::unknown(inst),
+                    0x0 => Instruction::Fmin_s { rd, rs1, rs2 },
+                    0x1 => Instruction::Fmax_s { rd, rs1, rs2 },
+                    _ => Instruction::Unknown(inst),
                 },
 
                 0x15 => match funct3 {
-                    0x0 => Instruction::fmin_d { rd, rs1, rs2 },
-                    0x1 => Instruction::fmax_d { rd, rs1, rs2 },
-                    _ => Instruction::unknown(inst),
+                    0x0 => Instruction::Fmin_d { rd, rs1, rs2 },
+                    0x1 => Instruction::Fmax_d { rd, rs1, rs2 },
+                    _ => Instruction::Unknown(inst),
                 },
 
                 // Single-precision comparisons
                 0x50 => match funct3 {
-                    0x0 => Instruction::fle_s { rd, rs1, rs2 },
-                    0x1 => Instruction::flt_s { rd, rs1, rs2 },
-                    0x2 => Instruction::feq_s { rd, rs1, rs2 },
-                    _ => Instruction::unknown(inst),
+                    0x0 => Instruction::Fle_s { rd, rs1, rs2 },
+                    0x1 => Instruction::Flt_s { rd, rs1, rs2 },
+                    0x2 => Instruction::Feq_s { rd, rs1, rs2 },
+                    _ => Instruction::Unknown(inst),
                 },
 
                 // Double-precision arithmetic
                 0x01 => {
                     let rm = ((inst >> 12) & 0x7) as u8;
-                    Instruction::fadd_d { rd, rs1, rs2, rm }
+                    Instruction::Fadd_d { rd, rs1, rs2, rm }
                 }
                 0x05 => {
                     let rm = ((inst >> 12) & 0x7) as u8;
-                    Instruction::fsub_d { rd, rs1, rs2, rm }
+                    Instruction::Fsub_d { rd, rs1, rs2, rm }
                 }
                 0x09 => {
                     let rm = ((inst >> 12) & 0x7) as u8;
-                    Instruction::fmul_d { rd, rs1, rs2, rm }
+                    Instruction::Fmul_d { rd, rs1, rs2, rm }
                 }
                 0x0d => {
                     let rm = ((inst >> 12) & 0x7) as u8;
-                    Instruction::fdiv_d { rd, rs1, rs2, rm }
+                    Instruction::Fdiv_d { rd, rs1, rs2, rm }
                 }
 
                 // Double-precision comparisons
                 0x51 => match funct3 {
-                    0x0 => Instruction::fle_d { rd, rs1, rs2 },
-                    0x1 => Instruction::flt_d { rd, rs1, rs2 },
-                    0x2 => Instruction::feq_d { rd, rs1, rs2 },
-                    _ => Instruction::unknown(inst),
+                    0x0 => Instruction::Fle_d { rd, rs1, rs2 },
+                    0x1 => Instruction::Flt_d { rd, rs1, rs2 },
+                    0x2 => Instruction::Feq_d { rd, rs1, rs2 },
+                    _ => Instruction::Unknown(inst),
                 },
 
                 // Conversions & moves (same for both)
                 0x60 => match funct3 {
-                    0x0 => Instruction::fcvt_w_s { rd, rs1 },
-                    0x1 => Instruction::fcvt_wu_s { rd, rs1 },
-                    _ => Instruction::unknown(inst),
+                    0x0 => Instruction::Fcvt_w_s { rd, rs1 },
+                    0x1 => Instruction::Fcvt_wu_s { rd, rs1 },
+                    _ => Instruction::Unknown(inst),
                 },
                 0x68 => match funct3 {
-                    0x0 => Instruction::fcvt_s_w { rd, rs1 },
-                    0x1 => Instruction::fcvt_s_wu { rd, rs1 },
-                    _ => Instruction::unknown(inst),
+                    0x0 => Instruction::Fcvt_s_w { rd, rs1 },
+                    0x1 => Instruction::Fcvt_s_wu { rd, rs1 },
+                    _ => Instruction::Unknown(inst),
                 },
                 0x61 => match funct3 {
-                    0x0 => Instruction::fcvt_w_d { rd, rs1 },
-                    0x1 => Instruction::fcvt_wu_d { rd, rs1 },
-                    _ => Instruction::unknown(inst),
+                    0x0 => Instruction::Fcvt_w_d { rd, rs1 },
+                    0x1 => Instruction::Fcvt_wu_d { rd, rs1 },
+                    _ => Instruction::Unknown(inst),
                 },
                 0x69 => match funct3 {
-                    0x0 => Instruction::fcvt_d_w { rd, rs1 },
-                    0x1 => Instruction::fcvt_d_wu { rd, rs1 },
-                    _ => Instruction::unknown(inst),
+                    0x0 => Instruction::Fcvt_d_w { rd, rs1 },
+                    0x1 => Instruction::Fcvt_d_wu { rd, rs1 },
+                    _ => Instruction::Unknown(inst),
                 },
-                0x78 => Instruction::fmv_w_s { rd, rs1 },
-                0x70 => Instruction::fmv_s_w { rd, rs1 },
+                0x78 => Instruction::Fmv_w_s { rd, rs1 },
+                0x70 => Instruction::Fmv_s_w { rd, rs1 },
 
-                0x7d => Instruction::fcvt_wu_d { rd, rs1 },
-                0x20 => Instruction::fcvt_s_d { rd, rs1 },
-                0x21 => Instruction::fcvt_d_s { rd, rs1 },
-                _ => Instruction::unknown(inst),
+                0x7d => Instruction::Fcvt_wu_d { rd, rs1 },
+                0x20 => Instruction::Fcvt_s_d { rd, rs1 },
+                0x21 => Instruction::Fcvt_d_s { rd, rs1 },
+                _ => Instruction::Unknown(inst),
             },
             0x43 => match sz {
-                0x0 => Instruction::fmadd_s {
+                0x0 => Instruction::Fmadd_s {
                     rd,
                     rs1,
                     rs2,
                     rs3,
                     rm,
                 },
-                0x1 => Instruction::fmadd_d {
+                0x1 => Instruction::Fmadd_d {
                     rd,
                     rs1,
                     rs2,
                     rs3,
                     rm,
                 },
-                _ => Instruction::unknown(inst),
+                _ => Instruction::Unknown(inst),
             },
             0x47 => match sz {
-                0x0 => Instruction::fmsub_s {
+                0x0 => Instruction::Fmsub_s {
                     rd,
                     rs1,
                     rs2,
                     rs3,
                     rm,
                 },
-                0x1 => Instruction::fmsub_d {
+                0x1 => Instruction::Fmsub_d {
                     rd,
                     rs1,
                     rs2,
                     rs3,
                     rm,
                 },
-                _ => Instruction::unknown(inst),
+                _ => Instruction::Unknown(inst),
             },
 
             0x4F => match sz {
-                0x0 => Instruction::fnmadd_s {
+                0x0 => Instruction::Fnmadd_s {
                     rd,
                     rs1,
                     rs2,
                     rs3,
                     rm,
                 },
-                0x1 => Instruction::fnmadd_d {
+                0x1 => Instruction::Fnmadd_d {
                     rd,
                     rs1,
                     rs2,
                     rs3,
                     rm,
                 },
-                _ => Instruction::unknown(inst),
+                _ => Instruction::Unknown(inst),
             },
             0x4B => match sz {
-                0x0 => Instruction::fnmsub_s {
+                0x0 => Instruction::Fnmsub_s {
                     rd,
                     rs1,
                     rs2,
                     rs3,
                     rm,
                 },
-                0x1 => Instruction::fnmsub_d {
+                0x1 => Instruction::Fnmsub_d {
                     rd,
                     rs1,
                     rs2,
                     rs3,
                     rm,
                 },
-                _ => Instruction::unknown(inst),
+                _ => Instruction::Unknown(inst),
             },
             0x07 => {
                 // fp loads (I-type): imm in bits[31:20]
                 let imm = sign_extend(inst >> 20, 12);
                 match funct3 {
-                    0x2 => Instruction::flw { rd, rs1, imm },
-                    0x3 => Instruction::fld { rd, rs1, imm },
-                    _ => Instruction::unknown(inst),
+                    0x2 => Instruction::Flw { rd, rs1, imm },
+                    0x3 => Instruction::Fld { rd, rs1, imm },
+                    _ => Instruction::Unknown(inst),
                 }
             }
             0x27 => {
@@ -930,12 +933,12 @@ impl Instruction {
                 let imm_val = ((inst >> 25) << 5) | ((inst >> 7) & 0x1f);
                 let imm = sign_extend(imm_val, 12);
                 match funct3 {
-                    0x2 => Instruction::fsw { rs1, rs2, imm },
-                    0x3 => Instruction::fsd { rs1, rs2, imm },
-                    _ => Instruction::unknown(inst),
+                    0x2 => Instruction::Fsw { rs1, rs2, imm },
+                    0x3 => Instruction::Fsd { rs1, rs2, imm },
+                    _ => Instruction::Unknown(inst),
                 }
             }
-            _ => Instruction::unknown(inst),
+            _ => Instruction::Unknown(inst),
         }
     }
 }
