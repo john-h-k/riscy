@@ -1,10 +1,8 @@
 use core::f32;
 use std::{
-    fs::File,
     io::{self, Write},
-    mem::{self, MaybeUninit},
+    mem::{self},
     ops::{Deref, Range},
-    os::fd::FromRawFd,
     ptr,
 };
 

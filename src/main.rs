@@ -2,7 +2,7 @@ use std::{error::Error, process::ExitCode};
 
 use clap::Parser;
 use core::Core;
-use load::{LoadedElf, Segment};
+use load::LoadedElf;
 
 mod core;
 mod instruction;

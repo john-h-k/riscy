@@ -1,6 +1,5 @@
 use anyhow::anyhow;
 use elf::{abi, endian::AnyEndian, ElfBytes};
-use std::collections::HashMap;
 use std::error::Error;
 use std::fs;
 
