@@ -290,7 +290,7 @@ impl<Reader: MemReader> Memory<Reader> {
 
             for seg in elf.segments.iter() {
                 let dest = data.byte_add(seg.vaddr as usize);
-                debug_assert!(seg.vaddr as usize + seg.data.len() < size);
+                assert!(seg.vaddr as usize + seg.data.len() < size);
                 dest.copy_from(seg.data.as_ptr(), seg.data.len());
             }
         }
@@ -317,7 +317,7 @@ impl<Reader: MemReader> Memory<Reader> {
     // }
 
     fn get_buf(&mut self, addr: Reader::Idx, len: Reader::Idx) -> &mut [u8] {
-        debug_assert!(
+        assert!(
             addr.as_usize() + len.as_usize() <= self.size,
             "{addr:?} {len:?}"
         );
@@ -328,7 +328,7 @@ impl<Reader: MemReader> Memory<Reader> {
     }
 
     fn load<T: Copy>(&self, addr: Reader::Idx) -> T {
-        debug_assert!(
+        assert!(
             addr.as_usize() + mem::size_of::<T>() <= self.size,
             "addr={addr:?}, size={}, len={}",
             mem::size_of::<T>(),
@@ -341,7 +341,7 @@ impl<Reader: MemReader> Memory<Reader> {
     }
 
     fn store<T: Copy>(&self, addr: Reader::Idx, val: T) {
-        debug_assert!(
+        assert!(
             addr.as_usize() + mem::size_of::<T>() <= self.size,
             "addr={addr:?}, size={}, len={}",
             mem::size_of::<T>(),
@@ -1179,6 +1179,9 @@ impl<Reader: MemReader<Idx = u32>> Core32<Reader> {
                         let count = f.write(buf).expect("write failed");
 
                         self.write(Register::A(0), count as i32);
+
+                        // IMPORTANT: don't close the file
+                        mem::forget(f);
                     }
                     SYSCALL_READ => {
                         let fd = self.read(Register::A(0));
@@ -1191,6 +1194,9 @@ impl<Reader: MemReader<Idx = u32>> Core32<Reader> {
                         let count = f.read(buf).expect("write failed");
 
                         self.write(Register::A(0), count as i32);
+
+                        // IMPORTANT: don't close the file
+                        mem::forget(f);
                     }
                     SYSCALL_BRK => {
                         let p = self.read(Register::A(0));
