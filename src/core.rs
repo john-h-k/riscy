@@ -852,7 +852,7 @@ impl Core {
                 let a = fp_reg.read_single(rs1);
                 let b = fp_reg.read_single(rs2);
                 let c = fp_reg.read_single(rs3);
-                fp_reg.write_single(rd, a * b + c);
+                fp_reg.write_single(rd, -(a * b) + c);
             }
             Instruction::fnmsub_s {
                 rd,
@@ -864,7 +864,7 @@ impl Core {
                 let a = fp_reg.read_single(rs1);
                 let b = fp_reg.read_single(rs2);
                 let c = fp_reg.read_single(rs3);
-                fp_reg.write_single(rd, a * b - c);
+                fp_reg.write_single(rd, -(a * b) - c);
             }
             Instruction::fnmadd_d {
                 rd,

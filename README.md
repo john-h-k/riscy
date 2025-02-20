@@ -1,2 +1,3 @@
 # riscy
-RISC Emulators
+
+High-performance RISC-V emulator
