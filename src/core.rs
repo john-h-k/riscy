@@ -226,13 +226,6 @@ impl Memory {
         for seg in elf.segments.iter() {
             unsafe {
                 let dest = (data.as_mut_ptr() as *mut u8).byte_add(seg.vaddr as usize);
-                println!(
-                    "copying {:?} to {:?} (vaddr={}), {} bytes",
-                    seg.data.as_ptr(),
-                    dest,
-                    seg.vaddr,
-                    seg.data.len()
-                );
                 dest.copy_from(seg.data.as_ptr(), seg.data.len());
             }
         }
