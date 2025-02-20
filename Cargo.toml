@@ -2,6 +2,11 @@
 name = "riscy"
 version = "0.1.0"
 edition = "2021"
+description = "RISC-V Emulator"
+license = "MIT"
+repository = "https://github.com/john-h-k/riscy"
+authors = ["John Harry Kelly <johnharrykelly@gmail.com>"]
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
