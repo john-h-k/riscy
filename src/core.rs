@@ -1,10 +1,12 @@
 use core::{f32, slice};
 use std::{
     fmt,
-    io::{self, Write},
+    fs::File,
+    io::{self, Read, Write},
     marker::PhantomData,
     mem,
     ops::{Add, Range},
+    os::fd::FromRawFd,
     ptr,
 };
 
@@ -35,9 +37,9 @@ pub trait MemReader {
     type Idx: IdxType;
 
     // returning 'static is unimaginably unsafe
-    unsafe fn get_buf(data: *const u8, offset: Self::Idx, len: Self::Idx) -> &'static [u8] {
+    unsafe fn get_buf(data: *mut u8, offset: Self::Idx, len: Self::Idx) -> &'static mut [u8] {
         let start = data.byte_add(offset.as_usize());
-        slice::from_raw_parts(start, len.as_usize())
+        slice::from_raw_parts_mut(start, len.as_usize())
     }
 
     unsafe fn read<T: Copy>(data: *const u8, offset: Self::Idx) -> T;
@@ -314,7 +316,7 @@ impl<Reader: MemReader> Memory<Reader> {
     //     }
     // }
 
-    fn load_buf(&self, addr: Reader::Idx, len: Reader::Idx) -> &[u8] {
+    fn get_buf(&mut self, addr: Reader::Idx, len: Reader::Idx) -> &mut [u8] {
         debug_assert!(
             addr.as_usize() + len.as_usize() <= self.size,
             "{addr:?} {len:?}"
@@ -404,7 +406,7 @@ pub struct RunInfo {
 const SYSCALL_EXIT: i32 = 93;
 // const SYSCALL_NEWFSTAT: i32 = 80;
 const SYSCALL_WRITE: i32 = 64;
-// const SYSCALL_READ: i32 = 63;
+const SYSCALL_READ: i32 = 63;
 const SYSCALL_BRK: i32 = 214;
 
 enum ExecResult {
@@ -1076,12 +1078,12 @@ impl<Reader: MemReader<Idx = u32>> Core32<Reader> {
                 let bits = reg.read(rs1);
                 fp_reg.write_u32(rd, bits as u32);
             }
-            Instruction::Fmv_x_d { rd, rs1 } => {
+            Instruction::Fmv_x_d { rd: _rd, rs1: _rs1 } => {
                 panic!("not supported on rv32i");
                 // let bits = fp_reg.read_u32(rs1).to_bits();
                 // reg.write(rd, bits as u32; // rv32: lower 32 bits onl);
             }
-            Instruction::Fmv_d_x { rd, rs1 } => {
+            Instruction::Fmv_d_x { rd: _rd, rs1: _rs1 } => {
                 panic!("not supported on rv32i");
                 // let bits = reg.read(rs1) as u64;
                 // fp_reg.write_double(rd, f64::from_bits(bits));
@@ -1167,16 +1169,27 @@ impl<Reader: MemReader<Idx = u32>> Core32<Reader> {
                 match syscall {
                     SYSCALL_EXIT => return ExecResult::Exit,
                     SYSCALL_WRITE => {
-                        let _fd = self.read(Register::A(0));
+                        let fd = self.read(Register::A(0));
                         let buf = self.read(Register::A(1));
                         let count = self.read(Register::A(2));
 
-                        let buf = self.memory.load_buf(buf as u32, count as u32);
+                        let buf = self.memory.get_buf(buf as u32, count as u32);
 
-                        // let mut f = unsafe { File::from_raw_fd(fd) };
-                        // f.write_all().expect("write failed");
+                        let mut f = unsafe { File::from_raw_fd(fd) };
+                        let count = f.write(buf).expect("write failed");
 
-                        let count = io::stdout().write(buf).expect("write failed");
+                        self.write(Register::A(0), count as i32);
+                    }
+                    SYSCALL_READ => {
+                        let fd = self.read(Register::A(0));
+                        let buf = self.read(Register::A(1));
+                        let count = self.read(Register::A(2));
+
+                        let buf = self.memory.get_buf(buf as u32, count as u32);
+
+                        let mut f = unsafe { File::from_raw_fd(fd) };
+                        let count = f.read(buf).expect("write failed");
+
                         self.write(Register::A(0), count as i32);
                     }
                     SYSCALL_BRK => {
