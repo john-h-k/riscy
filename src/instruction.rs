@@ -192,6 +192,14 @@ pub enum Instruction {
     ecall,
     ebreak,
 
+    frrm {
+        rd: u8,
+    },
+    fsrm {
+        rd: u8,
+        rs1: u8,
+    },
+
     // m-extension
     mul {
         rd: u8,
@@ -267,6 +275,20 @@ pub enum Instruction {
         rs3: u8,
         rm: u8,
     },
+    fnmadd_s {
+        rd: u8,
+        rs1: u8,
+        rs2: u8,
+        rs3: u8,
+        rm: u8,
+    },
+    fnmsub_s {
+        rd: u8,
+        rs1: u8,
+        rs2: u8,
+        rs3: u8,
+        rm: u8,
+    },
     fdiv_s {
         rd: u8,
         rs1: u8,
@@ -324,6 +346,20 @@ pub enum Instruction {
         rm: u8,
     },
     fmsub_d {
+        rd: u8,
+        rs1: u8,
+        rs2: u8,
+        rs3: u8,
+        rm: u8,
+    },
+    fnmadd_d {
+        rd: u8,
+        rs1: u8,
+        rs2: u8,
+        rs3: u8,
+        rm: u8,
+    },
+    fnmsub_d {
         rd: u8,
         rs1: u8,
         rs2: u8,
@@ -689,18 +725,16 @@ impl Instruction {
             }
             0x73 => {
                 let funct3 = (inst >> 12) & 0x7;
-                if funct3 == 0 {
-                    let imm = (inst >> 20) & 0xfff;
-                    match imm {
-                        0 => Instruction::ecall,
-                        1 => Instruction::ebreak,
-                        _ => Instruction::unknown(inst),
-                    }
-                } else {
-                    Instruction::unknown(inst)
+                let imm = (inst >> 20) & 0xfff;
+                match (funct3, imm) {
+                    (0b000000000000, 0b000) => Instruction::ecall,
+                    (0b000000000000, 0b001) => Instruction::ebreak,
+                    (0b000000000010, 0b010) => Instruction::frrm { rd },
+                    (0b000000000010, 0b001) => Instruction::fsrm { rd, rs1 },
+                    _ => Instruction::unknown(inst),
                 }
             }
-            0x53 => match funct7 & !1 {
+            0x53 => match funct7 {
                 // Single-precision arithmetic
                 0x00 => {
                     let rm = ((inst >> 12) & 0x7) as u8;
@@ -752,9 +786,9 @@ impl Instruction {
 
                 // Single-precision comparisons
                 0x50 => match funct3 {
-                    0x0 => Instruction::feq_s { rd, rs1, rs2 },
+                    0x0 => Instruction::fle_s { rd, rs1, rs2 },
                     0x1 => Instruction::flt_s { rd, rs1, rs2 },
-                    0x2 => Instruction::fle_s { rd, rs1, rs2 },
+                    0x2 => Instruction::feq_s { rd, rs1, rs2 },
                     _ => Instruction::unknown(inst),
                 },
 
@@ -777,10 +811,10 @@ impl Instruction {
                 }
 
                 // Double-precision comparisons
-                0x53 => match funct3 {
-                    0x0 => Instruction::feq_d { rd, rs1, rs2 },
+                0x51 => match funct3 {
+                    0x0 => Instruction::fle_d { rd, rs1, rs2 },
                     0x1 => Instruction::flt_d { rd, rs1, rs2 },
-                    0x2 => Instruction::fle_d { rd, rs1, rs2 },
+                    0x2 => Instruction::feq_d { rd, rs1, rs2 },
                     _ => Instruction::unknown(inst),
                 },
 
@@ -805,8 +839,8 @@ impl Instruction {
                     0x1 => Instruction::fcvt_d_wu { rd, rs1 },
                     _ => Instruction::unknown(inst),
                 },
-                0x70 => Instruction::fmv_w_s { rd, rs1 },
-                0x78 => Instruction::fmv_s_w { rd, rs1 },
+                0x78 => Instruction::fmv_w_s { rd, rs1 },
+                0x70 => Instruction::fmv_s_w { rd, rs1 },
 
                 0x7d => Instruction::fcvt_wu_d { rd, rs1 },
                 0x20 => Instruction::fcvt_s_d { rd, rs1 },
@@ -839,6 +873,41 @@ impl Instruction {
                     rm,
                 },
                 0x1 => Instruction::fmsub_d {
+                    rd,
+                    rs1,
+                    rs2,
+                    rs3,
+                    rm,
+                },
+                _ => Instruction::unknown(inst),
+            },
+
+            0x4F => match sz {
+                0x0 => Instruction::fnmadd_s {
+                    rd,
+                    rs1,
+                    rs2,
+                    rs3,
+                    rm,
+                },
+                0x1 => Instruction::fnmadd_d {
+                    rd,
+                    rs1,
+                    rs2,
+                    rs3,
+                    rm,
+                },
+                _ => Instruction::unknown(inst),
+            },
+            0x4B => match sz {
+                0x0 => Instruction::fnmsub_s {
+                    rd,
+                    rs1,
+                    rs2,
+                    rs3,
+                    rm,
+                },
+                0x1 => Instruction::fnmsub_d {
                     rd,
                     rs1,
                     rs2,

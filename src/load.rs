@@ -7,6 +7,7 @@ use std::fs;
 pub struct Segment {
     pub offset: u64, // relative address
     pub vaddr: u64,
+    pub size: u64,
     pub data: Vec<u8>,
 }
 
@@ -47,6 +48,7 @@ impl LoadedElf {
             loaded_segments.push(Segment {
                 offset: rel_offset,
                 vaddr: ph.p_vaddr,
+                size: ph.p_memsz,
                 data: seg_data,
             });
         }
@@ -61,12 +63,13 @@ impl LoadedElf {
         if vaddr < self.base {
             return None;
         }
-        let rel_addr = vaddr - self.base;
+
         for seg in &self.segments {
-            let seg_start = seg.offset;
-            let seg_end = seg.offset + seg.data.len() as u64;
-            if rel_addr >= seg_start && rel_addr < seg_end {
-                return Some((seg, seg_start as usize, (rel_addr - seg_start) as usize));
+            let seg_start = seg.vaddr;
+            let seg_end = seg.vaddr + seg.size;
+
+            if vaddr >= seg_start && vaddr < seg_end {
+                return Some((seg, seg_start as usize, (vaddr - seg_start) as usize));
             }
         }
         None

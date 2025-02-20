@@ -51,14 +51,57 @@ union FpReg {
     u64: u64,
 }
 
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, Default)]
+enum RoundingMode {
+    #[default]
+    RNE = 0b000,
+    RTZ = 0b001,
+    RDN = 0b010,
+    RUP = 0b011,
+    RMM = 0b100,
+    // Reserved = 0b101,
+    // Reserved = 0b110,
+    DYN = 0b111,
+}
+
+impl TryFrom<i32> for RoundingMode {
+    type Error = &'static str;
+
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
+        match value {
+            0b000 => Ok(Self::RNE),
+            0b001 => Ok(Self::RTZ),
+            0b010 => Ok(Self::RDN),
+            0b011 => Ok(Self::RUP),
+            0b100 => Ok(Self::RMM),
+            0b111 => Ok(Self::DYN),
+            _ => Err("bad rounding mode"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+struct Fcsr {
+    pub rm: RoundingMode,
+
+    pub nv: bool,
+    pub dz: bool,
+    pub of: bool,
+    pub uf: bool,
+    pub nx: bool,
+}
+
 struct FpRegfile {
     registers: [FpReg; 32],
+    fcsr: Fcsr,
 }
 
 impl FpRegfile {
     pub fn new() -> Self {
         Self {
             registers: [FpReg { u64: 0xBEBEBEBE }; 32],
+            fcsr: Fcsr::default(),
         }
     }
 
@@ -151,7 +194,7 @@ impl Memory {
 
     fn load_buf(&self, idx: u32, len: u32) -> &[u8] {
         let (data, offset) = self.get_data(idx);
-        return &data[offset as usize..(offset + len) as usize];
+        &data[offset as usize..(offset + len) as usize]
     }
 
     fn load<T: Copy>(&self, idx: u32) -> T {
@@ -604,6 +647,55 @@ impl Core {
                 let c = fp_reg.read_double(rs3);
                 fp_reg.write_double(rd, a * b - c);
             }
+            Instruction::fnmadd_s {
+                rd,
+                rs1,
+                rs2,
+                rs3,
+                rm: _,
+            } => {
+                let a = fp_reg.read_single(rs1);
+                let b = fp_reg.read_single(rs2);
+                let c = fp_reg.read_single(rs3);
+                fp_reg.write_single(rd, a * b + c);
+            }
+            Instruction::fnmsub_s {
+                rd,
+                rs1,
+                rs2,
+                rs3,
+                rm: _,
+            } => {
+                let a = fp_reg.read_single(rs1);
+                let b = fp_reg.read_single(rs2);
+                let c = fp_reg.read_single(rs3);
+                fp_reg.write_single(rd, a * b - c);
+            }
+            Instruction::fnmadd_d {
+                rd,
+                rs1,
+                rs2,
+                rs3,
+                rm: _,
+            } => {
+                let a = fp_reg.read_double(rs1);
+                let b = fp_reg.read_double(rs2);
+                let c = fp_reg.read_double(rs3);
+                fp_reg.write_double(rd, a * b + c);
+            }
+            Instruction::fnmsub_d {
+                rd,
+                rs1,
+                rs2,
+                rs3,
+                rm: _,
+            } => {
+                let a = fp_reg.read_double(rs1);
+                let b = fp_reg.read_double(rs2);
+                let c = fp_reg.read_double(rs3);
+                fp_reg.write_double(rd, a * b - c);
+            }
+
             Instruction::fdiv_s {
                 rd,
                 rs1,
@@ -819,6 +911,17 @@ impl Core {
                     }
                     _ => {} // _ => panic!("unknown syscall '{syscall}'"),
                 }
+            }
+            Instruction::frrm { rd } => {
+                let rm = fp_reg.fcsr.rm;
+                reg.write(rd, rm as i32);
+            }
+            Instruction::fsrm { rd, rs1 } => {
+                let rm = fp_reg.fcsr.rm;
+                reg.write(rd, rm as i32);
+
+                let new_rm = reg.read(rs1);
+                fp_reg.fcsr.rm = new_rm.try_into().expect("bad rounding mode");
             }
             Instruction::ebreak => {
                 todo!("ebreak encountered");
