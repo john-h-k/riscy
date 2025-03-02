@@ -19,6 +19,9 @@ struct Args {
     #[arg(long)]
     assume_aligned: bool,
 
+    #[arg(short, long, default_value = "16777215")]
+    size: usize,
+
     #[arg(short, long)]
     debug: bool,
 }
@@ -26,9 +29,10 @@ struct Args {
 fn run_core32<Reader: MemReader<Idx = u32>>(
     elf: LoadedElf,
     entrypoint: Option<u64>,
+    size: usize,
     debug: bool,
 ) -> RunInfo {
-    let mut core = Core32::<Reader>::new(elf, entrypoint, debug);
+    let mut core = Core32::<Reader>::new(elf, entrypoint, size, debug);
     core.run()
 }
 
@@ -44,9 +48,9 @@ fn main() -> Result<ExitCode, Box<dyn Error>> {
     );
 
     let info = if args.assume_aligned {
-        run_core32::<AlignedMemReader<u32>>(loaded, args.entrypoint, args.debug)
+        run_core32::<AlignedMemReader<u32>>(loaded, args.entrypoint, args.size, args.debug)
     } else {
-        run_core32::<UnalignedMemReader<u32>>(loaded, args.entrypoint, args.debug)
+        run_core32::<UnalignedMemReader<u32>>(loaded, args.entrypoint, args.size, args.debug)
     };
 
     Ok(ExitCode::from(info.return_code as u8))

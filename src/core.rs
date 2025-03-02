@@ -277,8 +277,8 @@ pub struct Memory<Reader: MemReader> {
 struct Align16(u8);
 
 impl<Reader: MemReader> Memory<Reader> {
-    fn new(elf: LoadedElf) -> Self {
-        let mut data_owner = vec![0xBEu8; 0xFFFFFF].into_boxed_slice();
+    fn new(elf: LoadedElf, size: usize) -> Self {
+        let mut data_owner = vec![0xBEu8; size].into_boxed_slice();
 
         let data;
         let size;
@@ -417,7 +417,7 @@ enum ExecResult {
 }
 
 impl<Reader: MemReader<Idx = u32>> Core32<Reader> {
-    pub fn new(elf: LoadedElf, entrypoint: Option<u64>, debug: bool) -> Self {
+    pub fn new(elf: LoadedElf, entrypoint: Option<u64>, size: usize, debug: bool) -> Self {
         let (text, _start, pc_offset) = elf
             .find_segment(entrypoint.unwrap_or(elf.entrypoint))
             .expect("entrypoint not found!");
@@ -435,7 +435,7 @@ impl<Reader: MemReader<Idx = u32>> Core32<Reader> {
             wk_cos: elf.wk_cos,
             wk_sin: elf.wk_sin,
 
-            memory: Memory::new(elf),
+            memory: Memory::new(elf, size),
         }
     }
 
