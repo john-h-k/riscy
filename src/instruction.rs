@@ -313,6 +313,16 @@ pub enum Instruction {
         rs1: u8,
         rs2: u8,
     },
+    Fsqrt_s {
+        rd: u8,
+        rs1: u8,
+        rm: u8,
+    },
+    Fsqrt_d {
+        rd: u8,
+        rs1: u8,
+        rm: u8,
+    },
     Fmin_s {
         rd: u8,
         rs1: u8,
@@ -742,6 +752,16 @@ impl Instruction {
                 0x00 => {
                     let rm = ((inst >> 12) & 0x7) as u8;
                     Instruction::Fadd_s { rd, rs1, rs2, rm }
+                }
+
+                0x2C if rs2 == 0 => {
+                    let rm = ((inst >> 12) & 0x7) as u8;
+                    Instruction::Fsqrt_s { rd, rs1, rm }
+                }
+
+                0x2D if rs2 == 0 => {
+                    let rm = ((inst >> 12) & 0x7) as u8;
+                    Instruction::Fsqrt_s { rd, rs1, rm }
                 }
 
                 0x04 => {

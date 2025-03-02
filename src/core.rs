@@ -851,6 +851,15 @@ impl<Reader: MemReader<Idx = u32>> Core32<Reader> {
                 let b = fp_reg.read_single(rs2);
                 fp_reg.write_single(rd, a + b);
             }
+
+            Instruction::Fsqrt_s { rd, rs1, rm: _ } => {
+                let a = fp_reg.read_single(rs1);
+                fp_reg.write_single(rd, a.sqrt());
+            }
+            Instruction::Fsqrt_d { rd, rs1, rm: _ } => {
+                let a = fp_reg.read_double(rs1);
+                fp_reg.write_double(rd, a.sqrt());
+            }
             Instruction::Fsub_s {
                 rd,
                 rs1,
@@ -1222,7 +1231,7 @@ impl<Reader: MemReader<Idx = u32>> Core32<Reader> {
             }
 
             Instruction::Unknown(val) => {
-                panic!("unknown instruction {val}!");
+                panic!("unknown instruction {val} at pc {}!", self.pc);
             }
         }
         ExecResult::Continue
