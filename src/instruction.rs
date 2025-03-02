@@ -870,17 +870,18 @@ impl Instruction {
                     0x1 => Instruction::Fcvt_d_wu { rd, rs1 },
                     _ => Instruction::Unknown(inst),
                 },
-                0x78 => match funct3 {
-                    0x0 => Instruction::Fmv_w_s { rd, rs1 },
+                0x78 => Instruction::Fmv_w_s { rd, rs1 },
+                0x79 => Instruction::Fmv_x_d { rd, rs1 },
+                0x70 => match funct3 {
+                    0x0 => Instruction::Fmv_s_w { rd, rs1 },
                     0x1 => Instruction::Fclass_s { rd, rs1 },
                     _ => Instruction::Unknown(inst),
                 },
-                0x79 => match funct3 {
-                    0x0 => Instruction::Fmv_x_d { rd, rs1 },
+                0x71 => match funct3 {
+                    0x0 => Instruction::Fmv_d_x { rd, rs1 },
                     0x1 => Instruction::Fclass_d { rd, rs1 },
                     _ => Instruction::Unknown(inst),
                 },
-                0x70 => Instruction::Fmv_s_w { rd, rs1 },
 
                 0x7d => Instruction::Fcvt_wu_d { rd, rs1 },
                 0x20 => Instruction::Fcvt_s_d { rd, rs1 },
