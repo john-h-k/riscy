@@ -189,7 +189,7 @@ pub enum Instruction {
         succ: u8,
     },
 
-    Fence_i,
+    FenceI,
 
     Ecall,
 
@@ -246,268 +246,268 @@ pub enum Instruction {
     },
 
     // f/d arithmetic (fp add/sub/mul/div, etc)
-    Fadd_s {
+    FaddS {
         rd: u8,
         rs1: u8,
         rs2: u8,
         rm: u8,
     },
-    Fsub_s {
+    FsubS {
         rd: u8,
         rs1: u8,
         rs2: u8,
         rm: u8,
     },
-    Fmul_s {
+    FmulS {
         rd: u8,
         rs1: u8,
         rs2: u8,
         rm: u8,
     },
-    Fmadd_s {
+    FmaddS {
         rd: u8,
         rs1: u8,
         rs2: u8,
         rs3: u8,
         rm: u8,
     },
-    Fmsub_s {
+    FmsubS {
         rd: u8,
         rs1: u8,
         rs2: u8,
         rs3: u8,
         rm: u8,
     },
-    Fnmadd_s {
+    FnmaddS {
         rd: u8,
         rs1: u8,
         rs2: u8,
         rs3: u8,
         rm: u8,
     },
-    Fnmsub_s {
+    FnmsubS {
         rd: u8,
         rs1: u8,
         rs2: u8,
         rs3: u8,
         rm: u8,
     },
-    Fdiv_s {
+    FdivS {
         rd: u8,
         rs1: u8,
         rs2: u8,
         rm: u8,
     },
-    Fsgnj_s {
+    FsgnjS {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    Fsgnjn_s {
+    FsgnjnS {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    Fsgnjx_s {
+    FsgnjxS {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    Fsqrt_s {
+    FsqrtS {
         rd: u8,
         rs1: u8,
         rm: u8,
     },
-    Fsqrt_d {
+    FsqrtD {
         rd: u8,
         rs1: u8,
         rm: u8,
     },
-    Fmin_s {
+    FminS {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    Fmax_s {
+    FmaxS {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    Fadd_d {
-        rd: u8,
-        rs1: u8,
-        rs2: u8,
-        rm: u8,
-    },
-    Fsub_d {
+    FaddD {
         rd: u8,
         rs1: u8,
         rs2: u8,
         rm: u8,
     },
-    Fmul_d {
+    FsubD {
         rd: u8,
         rs1: u8,
         rs2: u8,
         rm: u8,
     },
-    Fmadd_d {
+    FmulD {
+        rd: u8,
+        rs1: u8,
+        rs2: u8,
+        rm: u8,
+    },
+    FmaddD {
         rd: u8,
         rs1: u8,
         rs2: u8,
         rs3: u8,
         rm: u8,
     },
-    Fmsub_d {
+    FmsubD {
         rd: u8,
         rs1: u8,
         rs2: u8,
         rs3: u8,
         rm: u8,
     },
-    Fnmadd_d {
+    FnmaddD {
         rd: u8,
         rs1: u8,
         rs2: u8,
         rs3: u8,
         rm: u8,
     },
-    Fnmsub_d {
+    FnmsubD {
         rd: u8,
         rs1: u8,
         rs2: u8,
         rs3: u8,
         rm: u8,
     },
-    Fdiv_d {
+    FdivD {
         rd: u8,
         rs1: u8,
         rs2: u8,
         rm: u8,
     },
-    Fsgnj_d {
+    FsgnjD {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    Fsgnjn_d {
+    FsgnjnD {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    Fsgnjx_d {
+    FsgnjxD {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    Fmin_d {
+    FminD {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    Fmax_d {
+    FmaxD {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
 
     // fmv instructions (bit-level moves between int and fp)
-    Fmv_s_w {
+    FmvSW {
         rd: u8,
         rs1: u8,
     }, // move from single fp to int reg
-    Fmv_w_s {
+    FmvWS {
         rd: u8,
         rs1: u8,
     }, // move from int reg to single fp
-    Fclass_s {
+    FclassS {
         rd: u8,
         rs1: u8,
     },
-    Fclass_d {
+    FclassD {
         rd: u8,
         rs1: u8,
     },
-    Fmv_x_d {
+    FmvXD {
         rd: u8,
         rs1: u8,
     }, // move from double fp to int reg (rv32: lower 32 bits)
-    Fmv_d_x {
+    FmvDX {
         rd: u8,
         rs1: u8,
     }, // move from int reg to double fp
 
     // fcvt instructions (conversions between fp and int, and between precisions)
-    Fcvt_s_w {
+    FcvtSW {
         rd: u8,
         rs1: u8,
     }, // signed int -> single
-    Fcvt_s_wu {
+    FcvtSWu {
         rd: u8,
         rs1: u8,
     }, // unsigned int -> single
-    Fcvt_w_s {
+    FcvtWS {
         rd: u8,
         rs1: u8,
     }, // single -> signed int
-    Fcvt_wu_s {
+    FcvtWuS {
         rd: u8,
         rs1: u8,
     }, // single -> unsigned int
 
-    Fcvt_d_w {
+    FcvtDW {
         rd: u8,
         rs1: u8,
     }, // signed int -> double
-    Fcvt_d_wu {
+    FcvtDWu {
         rd: u8,
         rs1: u8,
     }, // unsigned int -> double
-    Fcvt_w_d {
+    FcvtWD {
         rd: u8,
         rs1: u8,
     }, // double -> signed int
-    Fcvt_wu_d {
+    FcvtWuD {
         rd: u8,
         rs1: u8,
     }, // double -> unsigned int
 
-    Fcvt_s_d {
+    FcvtSD {
         rd: u8,
         rs1: u8,
     }, // double -> single
-    Fcvt_d_s {
+    FcvtDS {
         rd: u8,
         rs1: u8,
     }, // single -> double
 
     // floating point compares (set int reg to 1 if true, else 0)
-    Feq_s {
+    FeqS {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    Flt_s {
+    FltS {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    Fle_s {
+    FleS {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    Feq_d {
+    FeqD {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    Flt_d {
+    FltD {
         rd: u8,
         rs1: u8,
         rs2: u8,
     },
-    Fle_d {
+    FleD {
         rd: u8,
         rs1: u8,
         rs2: u8,
@@ -739,7 +739,7 @@ impl Instruction {
                     let succ = ((inst >> 20) & 0xf) as u8;
                     Instruction::Fence { pred, succ }
                 } else if funct3 == 1 {
-                    Instruction::Fence_i
+                    Instruction::FenceI
                 } else {
                     Instruction::Unknown(inst)
                 }
@@ -759,144 +759,144 @@ impl Instruction {
                 // Single-precision arithmetic
                 0x00 => {
                     let rm = ((inst >> 12) & 0x7) as u8;
-                    Instruction::Fadd_s { rd, rs1, rs2, rm }
+                    Instruction::FaddS { rd, rs1, rs2, rm }
                 }
 
                 0x2C if rs2 == 0 => {
                     let rm = ((inst >> 12) & 0x7) as u8;
-                    Instruction::Fsqrt_s { rd, rs1, rm }
+                    Instruction::FsqrtS { rd, rs1, rm }
                 }
 
                 0x2D if rs2 == 0 => {
                     let rm = ((inst >> 12) & 0x7) as u8;
-                    Instruction::Fsqrt_s { rd, rs1, rm }
+                    Instruction::FsqrtS { rd, rs1, rm }
                 }
 
                 0x04 => {
                     let rm = ((inst >> 12) & 0x7) as u8;
-                    Instruction::Fsub_s { rd, rs1, rs2, rm }
+                    Instruction::FsubS { rd, rs1, rs2, rm }
                 }
 
                 0x08 => {
                     let rm = ((inst >> 12) & 0x7) as u8;
-                    Instruction::Fmul_s { rd, rs1, rs2, rm }
+                    Instruction::FmulS { rd, rs1, rs2, rm }
                 }
 
                 0x0c => {
                     let rm = ((inst >> 12) & 0x7) as u8;
-                    Instruction::Fdiv_s { rd, rs1, rs2, rm }
+                    Instruction::FdivS { rd, rs1, rs2, rm }
                 }
 
                 // Single-precision sign-injection ops
                 0x10 => match funct3 {
-                    0x0 => Instruction::Fsgnj_s { rd, rs1, rs2 },
-                    0x1 => Instruction::Fsgnjn_s { rd, rs1, rs2 },
-                    0x2 => Instruction::Fsgnjx_s { rd, rs1, rs2 },
+                    0x0 => Instruction::FsgnjS { rd, rs1, rs2 },
+                    0x1 => Instruction::FsgnjnS { rd, rs1, rs2 },
+                    0x2 => Instruction::FsgnjxS { rd, rs1, rs2 },
                     _ => Instruction::Unknown(inst),
                 },
 
                 0x11 => match funct3 {
-                    0x0 => Instruction::Fsgnj_d { rd, rs1, rs2 },
-                    0x1 => Instruction::Fsgnjn_d { rd, rs1, rs2 },
-                    0x2 => Instruction::Fsgnjx_d { rd, rs1, rs2 },
+                    0x0 => Instruction::FsgnjD { rd, rs1, rs2 },
+                    0x1 => Instruction::FsgnjnD { rd, rs1, rs2 },
+                    0x2 => Instruction::FsgnjxD { rd, rs1, rs2 },
                     _ => Instruction::Unknown(inst),
                 },
 
                 // Single-precision min/max
                 0x14 => match funct3 {
-                    0x0 => Instruction::Fmin_s { rd, rs1, rs2 },
-                    0x1 => Instruction::Fmax_s { rd, rs1, rs2 },
+                    0x0 => Instruction::FminS { rd, rs1, rs2 },
+                    0x1 => Instruction::FmaxS { rd, rs1, rs2 },
                     _ => Instruction::Unknown(inst),
                 },
 
                 0x15 => match funct3 {
-                    0x0 => Instruction::Fmin_d { rd, rs1, rs2 },
-                    0x1 => Instruction::Fmax_d { rd, rs1, rs2 },
+                    0x0 => Instruction::FminD { rd, rs1, rs2 },
+                    0x1 => Instruction::FmaxD { rd, rs1, rs2 },
                     _ => Instruction::Unknown(inst),
                 },
 
                 // Single-precision comparisons
                 0x50 => match funct3 {
-                    0x0 => Instruction::Fle_s { rd, rs1, rs2 },
-                    0x1 => Instruction::Flt_s { rd, rs1, rs2 },
-                    0x2 => Instruction::Feq_s { rd, rs1, rs2 },
+                    0x0 => Instruction::FleS { rd, rs1, rs2 },
+                    0x1 => Instruction::FltS { rd, rs1, rs2 },
+                    0x2 => Instruction::FeqS { rd, rs1, rs2 },
                     _ => Instruction::Unknown(inst),
                 },
 
                 // Double-precision arithmetic
                 0x01 => {
                     let rm = ((inst >> 12) & 0x7) as u8;
-                    Instruction::Fadd_d { rd, rs1, rs2, rm }
+                    Instruction::FaddD { rd, rs1, rs2, rm }
                 }
                 0x05 => {
                     let rm = ((inst >> 12) & 0x7) as u8;
-                    Instruction::Fsub_d { rd, rs1, rs2, rm }
+                    Instruction::FsubD { rd, rs1, rs2, rm }
                 }
                 0x09 => {
                     let rm = ((inst >> 12) & 0x7) as u8;
-                    Instruction::Fmul_d { rd, rs1, rs2, rm }
+                    Instruction::FmulD { rd, rs1, rs2, rm }
                 }
                 0x0d => {
                     let rm = ((inst >> 12) & 0x7) as u8;
-                    Instruction::Fdiv_d { rd, rs1, rs2, rm }
+                    Instruction::FdivD { rd, rs1, rs2, rm }
                 }
 
                 // Double-precision comparisons
                 0x51 => match funct3 {
-                    0x0 => Instruction::Fle_d { rd, rs1, rs2 },
-                    0x1 => Instruction::Flt_d { rd, rs1, rs2 },
-                    0x2 => Instruction::Feq_d { rd, rs1, rs2 },
+                    0x0 => Instruction::FleD { rd, rs1, rs2 },
+                    0x1 => Instruction::FltD { rd, rs1, rs2 },
+                    0x2 => Instruction::FeqD { rd, rs1, rs2 },
                     _ => Instruction::Unknown(inst),
                 },
 
                 // Conversions & moves (same for both)
                 0x60 => match rs2 {
-                    0x0 => Instruction::Fcvt_w_s { rd, rs1 },
-                    0x1 => Instruction::Fcvt_wu_s { rd, rs1 },
+                    0x0 => Instruction::FcvtWS { rd, rs1 },
+                    0x1 => Instruction::FcvtWuS { rd, rs1 },
                     _ => Instruction::Unknown(inst),
                 },
                 0x68 => match rs2 {
-                    0x0 => Instruction::Fcvt_s_w { rd, rs1 },
-                    0x1 => Instruction::Fcvt_s_wu { rd, rs1 },
+                    0x0 => Instruction::FcvtSW { rd, rs1 },
+                    0x1 => Instruction::FcvtSWu { rd, rs1 },
                     _ => Instruction::Unknown(inst),
                 },
                 0x61 => match rs2 {
-                    0x0 => Instruction::Fcvt_w_d { rd, rs1 },
-                    0x1 => Instruction::Fcvt_wu_d { rd, rs1 },
+                    0x0 => Instruction::FcvtWD { rd, rs1 },
+                    0x1 => Instruction::FcvtWuD { rd, rs1 },
                     _ => Instruction::Unknown(inst),
                 },
                 0x69 => match rs2 {
-                    0x0 => Instruction::Fcvt_d_w { rd, rs1 },
-                    0x1 => Instruction::Fcvt_d_wu { rd, rs1 },
+                    0x0 => Instruction::FcvtDW { rd, rs1 },
+                    0x1 => Instruction::FcvtDWu { rd, rs1 },
                     _ => Instruction::Unknown(inst),
                 },
-                0x78 => Instruction::Fmv_w_s { rd, rs1 },
-                0x79 => Instruction::Fmv_x_d { rd, rs1 },
+                0x78 => Instruction::FmvWS { rd, rs1 },
+                0x79 => Instruction::FmvXD { rd, rs1 },
                 0x70 => match funct3 {
-                    0x0 => Instruction::Fmv_s_w { rd, rs1 },
-                    0x1 => Instruction::Fclass_s { rd, rs1 },
+                    0x0 => Instruction::FmvSW { rd, rs1 },
+                    0x1 => Instruction::FclassS { rd, rs1 },
                     _ => Instruction::Unknown(inst),
                 },
                 0x71 => match funct3 {
-                    0x0 => Instruction::Fmv_d_x { rd, rs1 },
-                    0x1 => Instruction::Fclass_d { rd, rs1 },
+                    0x0 => Instruction::FmvDX { rd, rs1 },
+                    0x1 => Instruction::FclassD { rd, rs1 },
                     _ => Instruction::Unknown(inst),
                 },
 
-                0x7d => Instruction::Fcvt_wu_d { rd, rs1 },
-                0x20 => Instruction::Fcvt_s_d { rd, rs1 },
-                0x21 => Instruction::Fcvt_d_s { rd, rs1 },
+                0x7d => Instruction::FcvtWuD { rd, rs1 },
+                0x20 => Instruction::FcvtSD { rd, rs1 },
+                0x21 => Instruction::FcvtDS { rd, rs1 },
                 _ => Instruction::Unknown(inst),
             },
             0x43 => match sz {
-                0x0 => Instruction::Fmadd_s {
+                0x0 => Instruction::FmaddS {
                     rd,
                     rs1,
                     rs2,
                     rs3,
                     rm,
                 },
-                0x1 => Instruction::Fmadd_d {
+                0x1 => Instruction::FmaddD {
                     rd,
                     rs1,
                     rs2,
@@ -906,14 +906,14 @@ impl Instruction {
                 _ => Instruction::Unknown(inst),
             },
             0x47 => match sz {
-                0x0 => Instruction::Fmsub_s {
+                0x0 => Instruction::FmsubS {
                     rd,
                     rs1,
                     rs2,
                     rs3,
                     rm,
                 },
-                0x1 => Instruction::Fmsub_d {
+                0x1 => Instruction::FmsubD {
                     rd,
                     rs1,
                     rs2,
@@ -924,14 +924,14 @@ impl Instruction {
             },
 
             0x4F => match sz {
-                0x0 => Instruction::Fnmadd_s {
+                0x0 => Instruction::FnmaddS {
                     rd,
                     rs1,
                     rs2,
                     rs3,
                     rm,
                 },
-                0x1 => Instruction::Fnmadd_d {
+                0x1 => Instruction::FnmaddD {
                     rd,
                     rs1,
                     rs2,
@@ -941,14 +941,14 @@ impl Instruction {
                 _ => Instruction::Unknown(inst),
             },
             0x4B => match sz {
-                0x0 => Instruction::Fnmsub_s {
+                0x0 => Instruction::FnmsubS {
                     rd,
                     rs1,
                     rs2,
                     rs3,
                     rm,
                 },
-                0x1 => Instruction::Fnmsub_d {
+                0x1 => Instruction::FnmsubD {
                     rd,
                     rs1,
                     rs2,
