@@ -1231,7 +1231,7 @@ impl<Reader: MemReader<Idx = u32>> Core32<Reader> {
             }
 
             Instruction::Unknown(val) => {
-                panic!("unknown instruction {val} at pc {}!", self.pc);
+                panic!("unknown instruction {val:#x} at pc {:#x}!", self.pc);
             }
         }
         ExecResult::Continue

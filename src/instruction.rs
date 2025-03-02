@@ -842,22 +842,22 @@ impl Instruction {
                 },
 
                 // Conversions & moves (same for both)
-                0x60 => match funct3 {
+                0x60 => match rs2 {
                     0x0 => Instruction::Fcvt_w_s { rd, rs1 },
                     0x1 => Instruction::Fcvt_wu_s { rd, rs1 },
                     _ => Instruction::Unknown(inst),
                 },
-                0x68 => match funct3 {
+                0x68 => match rs2 {
                     0x0 => Instruction::Fcvt_s_w { rd, rs1 },
                     0x1 => Instruction::Fcvt_s_wu { rd, rs1 },
                     _ => Instruction::Unknown(inst),
                 },
-                0x61 => match funct3 {
+                0x61 => match rs2 {
                     0x0 => Instruction::Fcvt_w_d { rd, rs1 },
                     0x1 => Instruction::Fcvt_wu_d { rd, rs1 },
                     _ => Instruction::Unknown(inst),
                 },
-                0x69 => match funct3 {
+                0x69 => match rs2 {
                     0x0 => Instruction::Fcvt_d_w { rd, rs1 },
                     0x1 => Instruction::Fcvt_d_wu { rd, rs1 },
                     _ => Instruction::Unknown(inst),
