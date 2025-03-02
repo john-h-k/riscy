@@ -420,6 +420,14 @@ pub enum Instruction {
         rd: u8,
         rs1: u8,
     }, // move from int reg to single fp
+    Fclass_s {
+        rd: u8,
+        rs1: u8,
+    },
+    Fclass_d {
+        rd: u8,
+        rs1: u8,
+    },
     Fmv_x_d {
         rd: u8,
         rs1: u8,
@@ -862,7 +870,16 @@ impl Instruction {
                     0x1 => Instruction::Fcvt_d_wu { rd, rs1 },
                     _ => Instruction::Unknown(inst),
                 },
-                0x78 => Instruction::Fmv_w_s { rd, rs1 },
+                0x78 => match funct3 {
+                    0x0 => Instruction::Fmv_w_s { rd, rs1 },
+                    0x1 => Instruction::Fclass_s { rd, rs1 },
+                    _ => Instruction::Unknown(inst),
+                },
+                0x79 => match funct3 {
+                    0x0 => Instruction::Fmv_x_d { rd, rs1 },
+                    0x1 => Instruction::Fclass_d { rd, rs1 },
+                    _ => Instruction::Unknown(inst),
+                },
                 0x70 => Instruction::Fmv_s_w { rd, rs1 },
 
                 0x7d => Instruction::Fcvt_wu_d { rd, rs1 },

@@ -852,6 +852,86 @@ impl<Reader: MemReader<Idx = u32>> Core32<Reader> {
                 fp_reg.write_single(rd, a + b);
             }
 
+            Instruction::Fclass_s { rd, rs1 } => {
+                let a = fp_reg.read_single(rs1);
+
+                let bits = a.to_bits();
+                let sign = bits >> 31;
+                let exp = (bits >> 23) & 0xff;
+                let frac = bits & 0x7fffff;
+                let mut mask = 0;
+                if exp == 0xff {
+                    if frac == 0 {
+                        if sign != 0 {
+                            mask |= 1 << 0
+                        } else {
+                            mask |= 1 << 7
+                        }
+                    } else if (frac & (1 << 22)) == 0 {
+                        mask |= 1 << 8
+                    } else {
+                        mask |= 1 << 9
+                    }
+                } else if exp == 0 {
+                    if frac == 0 {
+                        if sign != 0 {
+                            mask |= 1 << 3
+                        } else {
+                            mask |= 1 << 4
+                        }
+                    } else if sign != 0 {
+                        mask |= 1 << 2
+                    } else {
+                        mask |= 1 << 5
+                    }
+                } else if sign != 0 {
+                    mask |= 1 << 1
+                } else {
+                    mask |= 1 << 6
+                }
+
+                reg.write(rd, mask);
+            }
+            Instruction::Fclass_d { rd, rs1 } => {
+                let a = fp_reg.read_double(rs1);
+
+                let bits = a.to_bits();
+                let sign = bits >> 63;
+                let exp = (bits >> 52) & 0x7ff;
+                let frac = bits & 0xfffffffffffff;
+                let mut mask = 0;
+                if exp == 0x7ff {
+                    if frac == 0 {
+                        if sign != 0 {
+                            mask |= 1 << 0
+                        } else {
+                            mask |= 1 << 7
+                        }
+                    } else if (frac & (1 << 51)) == 0 {
+                        mask |= 1 << 8
+                    } else {
+                        mask |= 1 << 9
+                    }
+                } else if exp == 0 {
+                    if frac == 0 {
+                        if sign != 0 {
+                            mask |= 1 << 3
+                        } else {
+                            mask |= 1 << 4
+                        }
+                    } else if sign != 0 {
+                        mask |= 1 << 2
+                    } else {
+                        mask |= 1 << 5
+                    }
+                } else if sign != 0 {
+                    mask |= 1 << 1
+                } else {
+                    mask |= 1 << 6
+                }
+
+                reg.write(rd, mask);
+            }
             Instruction::Fsqrt_s { rd, rs1, rm: _ } => {
                 let a = fp_reg.read_single(rs1);
                 fp_reg.write_single(rd, a.sqrt());
